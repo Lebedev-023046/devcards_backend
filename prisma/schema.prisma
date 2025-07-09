@@ -7,16 +7,58 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  role     Role   @default(USER)
+  decks    Deck[] @relation("UserDecks")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Deck {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  isPublic    Boolean @default(true)
+
+  owner   User   @relation("UserDecks", fields: [ownerId], references: [id])
+  ownerId String
+
+  cards Card[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Card {
-  id      String   @id @default(uuid())
-  title   String
+  id       String @id @default(uuid())
+  question String
+
+  deck   Deck   @relation(fields: [deckId], references: [id])
+  deckId String
+
   options Option[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Option {
   id        String  @id @default(uuid())
   text      String
   isCorrect Boolean
-  card      Card    @relation(fields: [cardId], references: [id])
-  cardId    String
+
+  card   Card   @relation(fields: [cardId], references: [id])
+  cardId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
