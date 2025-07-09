@@ -25,27 +25,27 @@ NestJS API connected to PostgreSQL via Prisma ORM. Used in combination with [dev
 In the root of the project, create a .env file:
 
 ```bash
-  DATABASE_URL=postgresql://postgres:postgres@localhost:5432/devcards_db
-  FRONTEND_ORIGIN=http://localhost:5173
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/devcards_db
+FRONTEND_ORIGIN=http://localhost:5173
 ```
 
 ### 4. Run Migrations and Generate Prisma Client
 
 ```bash
-  npx prisma migrate dev --name init
-  npx prisma generate
+npx prisma migrate dev --name init
+npx prisma generate
 ```
 
 ### 5. (Optional) Seed the Database
 
 ```bash
-  pnpm seed
+pnpm seed
 ```
 
 ### 6. Start the Development Server
 
 ```bash
-  pnpm start:dev
+pnpm start:dev
 ```
 
 API will be available at: http://localhost:3000
