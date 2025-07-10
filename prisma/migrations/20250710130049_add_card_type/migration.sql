@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "CardType" AS ENUM ('SINGLE_CHOICE', 'MULTI_CHOICE', 'INFO');
+
+-- AlterTable
+ALTER TABLE "Card" ADD COLUMN     "type" "CardType" NOT NULL DEFAULT 'SINGLE_CHOICE';

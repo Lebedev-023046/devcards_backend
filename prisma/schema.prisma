@@ -38,9 +38,16 @@ model Deck {
   updatedAt DateTime @updatedAt
 }
 
+enum CardType {
+  SINGLE_CHOICE
+  MULTI_CHOICE
+  INFO
+}
+
 model Card {
-  id       String @id @default(uuid())
+  id       String   @id @default(uuid())
   question String
+  type     CardType @default(SINGLE_CHOICE)
 
   deck   Deck   @relation(fields: [deckId], references: [id])
   deckId String

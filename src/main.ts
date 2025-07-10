@@ -6,6 +6,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { ValidationPipe } from '@nestjs/common';
 
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { customOperationSorter } from './utils/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -33,6 +34,7 @@ async function bootstrap() {
   // enable response interceptor
   app.useGlobalInterceptors(new ResponseInterceptor());
 
+  // enable swagger
   const swaggerConfig = new DocumentBuilder()
     .setTitle('My API')
     .setDescription('API docs')
@@ -41,7 +43,11 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      operationsSorter: customOperationSorter,
+    },
+  });
 
   await app.listen(process.env.PORT ?? 3000);
 }

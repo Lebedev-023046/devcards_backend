@@ -1,0 +1,5 @@
+export enum CardType {
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
+  MULTI_CHOICE = 'MULTI_CHOICE',
+  INFO = 'INFO',
+}
