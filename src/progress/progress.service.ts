@@ -24,6 +24,11 @@ export class ProgressService {
       throw new NotFoundException(`Card with id "${cardId}" not found`);
     }
 
+    await this.prisma.deck.update({
+      where: { id: card.deckId },
+      data: { totalReviews: { increment: 1 } },
+    });
+
     let isCorrect = false;
 
     switch (card.type) {
@@ -53,7 +58,7 @@ export class ProgressService {
     }
 
     // update user card status based on viewed and correct
-    return this.prisma.userCardStatus.upsert({
+    const reviewCardResult = await this.prisma.userCardStatus.upsert({
       where: { userId_cardId: { userId, cardId } },
       create: {
         userId,
@@ -66,6 +71,8 @@ export class ProgressService {
         ...(isCorrect ? { correctCount: { increment: 1 } } : {}),
       },
     });
+
+    return reviewCardResult;
   }
 
   async getDeckProgress(

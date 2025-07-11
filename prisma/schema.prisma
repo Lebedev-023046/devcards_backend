@@ -34,6 +34,9 @@ model Deck {
   owner   User   @relation("UserDecks", fields: [ownerId], references: [id])
   ownerId String
 
+  views        Int @default(0) // total views
+  totalReviews Int @default(0) // total reviews
+
   cards Card[]
 
   createdAt     DateTime       @default(now())

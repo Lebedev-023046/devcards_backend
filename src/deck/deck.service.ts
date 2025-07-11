@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDeckDto } from './dto/create-deck.dto';
 import { UpdateDeckDto } from './dto/update-deck.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -59,9 +59,32 @@ export class DeckService {
   }
 
   async findOne(id: string) {
-    return this.prisma.deck.findUnique({
+    const deck = await this.prisma.deck.update({
       where: { id },
-      include: { cards: true },
+      data: { views: { increment: 1 } },
+      include: {
+        cards: true,
+      },
+    });
+
+    if (!deck) {
+      throw new NotFoundException(`Deck ${id} not found`);
+    }
+    return deck;
+  }
+
+  async findTopByViews(limit = 5) {
+    return this.prisma.deck.findMany({
+      where: { isPublic: true },
+      orderBy: { views: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        views: true,
+        totalReviews: true,
+      },
     });
   }
 

@@ -71,6 +71,14 @@ export class DeckController {
     return this.deckService.findOne(id);
   }
 
+  @Get('top')
+  @ApiOperation({ summary: 'Get top public decks by views' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
+  @ApiResponse({ status: 200, description: 'Array of top decks' })
+  getTop(@Query('limit') limit = 5) {
+    return this.deckService.findTopByViews(Number(limit));
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update a deck' })
   @ApiParam({ name: 'id', type: String })
