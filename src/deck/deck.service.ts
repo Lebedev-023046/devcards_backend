@@ -7,6 +7,7 @@ interface FindPublicParams {
   page?: number;
   limit?: number;
   query?: string;
+  tagId?: string;
 }
 
 @Injectable()
@@ -21,7 +22,12 @@ export class DeckService {
     });
   }
 
-  async findAllPublic({ page = 1, limit = 10, query }: FindPublicParams) {
+  async findAllPublic({
+    page = 1,
+    limit = 10,
+    query,
+    tagId,
+  }: FindPublicParams) {
     const skip = (page - 1) * limit;
 
     const where: any = { isPublic: true };
@@ -36,6 +42,10 @@ export class DeckService {
           { description: { contains: term, mode: 'insensitive' } },
         ],
       }));
+    }
+
+    if (tagId) {
+      where.AND = [...(where.AND ?? []), { deckTags: { some: { tagId } } }];
     }
 
     const [items, total] = await Promise.all([

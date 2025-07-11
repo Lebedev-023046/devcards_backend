@@ -25,6 +25,22 @@ model User {
   FavoriteDecks  FavoriteDeck[]
 }
 
+model Tag {
+  id       String    @id @default(cuid())
+  name     String    @unique()
+  deckTags DeckTag[]
+}
+
+model DeckTag {
+  deck   Deck   @relation(fields: [deckId], references: [id])
+  deckId String
+
+  tag   Tag    @relation(fields: [tagId], references: [id])
+  tagId String
+
+  @@id([deckId, tagId])
+}
+
 model Deck {
   id          String  @id @default(uuid())
   title       String
@@ -37,11 +53,12 @@ model Deck {
   views        Int @default(0) // total views
   totalReviews Int @default(0) // total reviews
 
-  cards Card[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  cards         Card[]
   favoriteDecks FavoriteDeck[]
+  deckTags      DeckTag[]
 }
 
 model FavoriteDeck {

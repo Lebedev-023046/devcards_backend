@@ -26,6 +26,7 @@ import {
 import { ReqUser } from './decorators/req-user.decorator';
 import { PaginationDto } from './dto/pagination.dto';
 import { SearchParamsDto } from './dto/search-params.dto';
+import { TagFilterDto } from './dto/tag-filter.dto';
 
 @ApiTags('Decks')
 @ApiBearerAuth()
@@ -46,12 +47,21 @@ export class DeckController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'query', required: false, type: String, example: 'react' })
+  @ApiQuery({ name: 'tagId', required: false, type: String })
   @ApiResponse({
     status: 200,
     description: 'Paginated (and filtered) public decks',
   })
-  findAllPublic(@Query() dto: PaginationDto & SearchParamsDto) {
-    const params = { limit: dto.limit, page: dto.page, query: dto.query };
+  findAllPublic(
+    @Query() dto: PaginationDto & SearchParamsDto,
+    @Query() tagFilter: TagFilterDto,
+  ) {
+    const params = {
+      limit: dto.limit,
+      page: dto.page,
+      query: dto.query,
+      ...tagFilter,
+    };
     return this.deckService.findAllPublic(params);
   }
 
