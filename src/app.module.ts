@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { DeckModule } from './deck/deck.module';
+import { ProgressModule } from './progress/progress.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DeckModule } from './deck/deck.module';
     AuthModule,
     CardModule,
     DeckModule,
+    ProgressModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

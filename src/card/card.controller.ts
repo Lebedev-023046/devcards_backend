@@ -7,14 +7,24 @@ import {
   Patch,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CardService } from './card.service';
 import { CreateCardDto } from './dto/card/create-card.dto';
 import { UpdateCardDto } from './dto/card/update-card.dto';
-import { ApiTags, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PaginationDto } from './dto/card/pagination.dto';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
 
 @ApiTags('Cards')
+@ApiBearerAuth()
+@UseGuards(JwtGuard)
 @Controller('cards')
 export class CardController {
   constructor(private readonly cardService: CardService) {}
