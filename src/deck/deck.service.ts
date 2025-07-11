@@ -1,0 +1,80 @@
+import { Injectable } from '@nestjs/common';
+import { CreateDeckDto } from './dto/create-deck.dto';
+import { UpdateDeckDto } from './dto/update-deck.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+
+interface FindPublicParams {
+  page?: number;
+  limit?: number;
+  query?: string;
+}
+
+@Injectable()
+export class DeckService {
+  constructor(private prisma: PrismaService) {}
+  async create(dto: CreateDeckDto, userId: string) {
+    return this.prisma.deck.create({
+      data: {
+        ...dto,
+        ownerId: userId,
+      },
+    });
+  }
+
+  async findAllPublic({ page = 1, limit = 10, query }: FindPublicParams) {
+    const skip = (page - 1) * limit;
+
+    const where: any = { isPublic: true };
+
+    if (query) {
+      const cleaned = query.trim().replace(/['"]/g, '');
+      const terms = cleaned.split(/\s+/).filter(Boolean);
+
+      where.AND = terms.map((term) => ({
+        OR: [
+          { title: { contains: term, mode: 'insensitive' } },
+          { description: { contains: term, mode: 'insensitive' } },
+        ],
+      }));
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.deck.findMany({ where, skip, take: limit }),
+      this.prisma.deck.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      lastPage: Math.ceil(total / limit),
+    };
+  }
+  async findUserDecks(userId: string) {
+    return this.prisma.deck.findMany({
+      where: { ownerId: userId },
+      include: { cards: true },
+    });
+  }
+
+  async findOne(id: string) {
+    return this.prisma.deck.findUnique({
+      where: { id },
+      include: { cards: true },
+    });
+  }
+
+  async update(id: string, dto: UpdateDeckDto) {
+    return this.prisma.deck.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async remove(id: string) {
+    return this.prisma.deck.delete({
+      where: { id },
+    });
+  }
+}
