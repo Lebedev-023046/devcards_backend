@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { DeckModule } from './deck/deck.module';
 import { ProgressModule } from './progress/progress.module';
+import { FavoriteDeckModule } from './favorite-deck/favorite-deck.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProgressModule } from './progress/progress.module';
     CardModule,
     DeckModule,
     ProgressModule,
+    FavoriteDeckModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

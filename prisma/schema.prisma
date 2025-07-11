@@ -22,6 +22,7 @@ model User {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   userCardStatus UserCardStatus[]
+  FavoriteDecks  FavoriteDeck[]
 }
 
 model Deck {
@@ -35,8 +36,21 @@ model Deck {
 
   cards Card[]
 
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  favoriteDecks FavoriteDeck[]
+}
+
+model FavoriteDeck {
+  id        String   @id @default(cuid())
+  userId    String
+  deckId    String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  deck Deck @relation(fields: [deckId], references: [id])
+
+  @@unique([userId, deckId])
 }
 
 enum CardType {
