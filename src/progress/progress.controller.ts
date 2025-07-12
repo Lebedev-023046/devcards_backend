@@ -28,19 +28,11 @@ import { ProgressFilter } from './types/filter';
 export class ProgressController {
   constructor(private readonly progressService: ProgressService) {}
 
-  @Post('cards/:cardId/review')
-  @ApiOperation({ summary: 'Submit review result for a card' })
-  @ApiResponse({ status: 201, description: 'Review recorded' })
-  async reviewCard(
-    @ReqUser('id') userId: string,
-    @Param('cardId') cardId: string,
-    @Body() dto: ReviewCardDto,
-  ) {
-    return this.progressService.reviewCard(userId, cardId, dto);
-  }
-
   @Get('decks/:deckId/progress')
-  @ApiOperation({ summary: 'Get user progress for a deck' })
+  @ApiOperation({
+    summary: 'Get user progress for a deck',
+    operationId: 'getDeckProgress',
+  })
   @ApiResponse({ status: 200, description: 'Deck progress data' })
   async getDeckProgress(
     @ReqUser('id') userId: string,
@@ -50,8 +42,25 @@ export class ProgressController {
     return this.progressService.getDeckProgress(userId, deckId, filter);
   }
 
+  @Post('cards/:cardId/review')
+  @ApiOperation({
+    summary: 'Submit review result for a card',
+    operationId: 'addCardReview',
+  })
+  @ApiResponse({ status: 201, description: 'Review recorded' })
+  async reviewCard(
+    @ReqUser('id') userId: string,
+    @Param('cardId') cardId: string,
+    @Body() dto: ReviewCardDto,
+  ) {
+    return this.progressService.reviewCard(userId, cardId, dto);
+  }
+
   @Delete('decks/:deckId/progress')
-  @ApiOperation({ summary: 'Reset user progress for a deck' })
+  @ApiOperation({
+    summary: 'Reset user progress for a deck',
+    operationId: 'resetDeckProgress',
+  })
   @ApiResponse({ status: 200, description: 'Progress reset successfully' })
   async resetDeckProgress(
     @ReqUser('id') userId: string,

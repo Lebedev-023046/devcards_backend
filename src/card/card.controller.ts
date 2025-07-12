@@ -18,6 +18,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiOperation,
 } from '@nestjs/swagger';
 import { PaginationDto } from './dto/card/pagination.dto';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
@@ -30,6 +31,10 @@ export class CardController {
   constructor(private readonly cardService: CardService) {}
 
   @Get('/by-deck/:deckId')
+  @ApiOperation({
+    summary: 'Get paginated list of cards in a deck',
+    operationId: 'getAllCardsByDeck',
+  })
   @ApiParam({ name: 'deckId', type: String })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -42,24 +47,40 @@ export class CardController {
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Get a single card by ID',
+    operationId: 'getCardById',
+  })
   @ApiResponse({ status: 200, description: 'Single card by ID' })
   findOne(@Param('id') id: string) {
     return this.cardService.findOne(id);
   }
 
   @Post()
+  @ApiOperation({
+    summary: 'Create a new card',
+    operationId: 'createCard',
+  })
   @ApiResponse({ status: 201, description: 'Card created successfully' })
   create(@Body() dto: CreateCardDto) {
     return this.cardService.create(dto);
   }
 
   @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an existing card',
+    operationId: 'updateCard',
+  })
   @ApiResponse({ status: 200, description: 'Card updated successfully' })
   update(@Param('id') id: string, @Body() dto: UpdateCardDto) {
     return this.cardService.update(id, dto);
   }
 
   @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete a card by ID',
+    operationId: 'deleteCard',
+  })
   @ApiResponse({ status: 200, description: 'Card deleted successfully' })
   remove(@Param('id') id: string) {
     return this.cardService.remove(id);

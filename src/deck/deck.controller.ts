@@ -35,14 +35,11 @@ import { TagFilterDto } from './dto/tag-filter.dto';
 export class DeckController {
   constructor(private readonly deckService: DeckService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create new deck' })
-  @ApiResponse({ status: 201, description: 'Deck created successfully' })
-  create(@Body() dto: CreateDeckDto, @ReqUser('id') userId: string) {
-    return this.deckService.create(dto, userId);
-  }
-
   @Get('public')
+  @ApiOperation({
+    summary: 'Get public decks with optional search & tag filter',
+    operationId: 'getPublicDecks',
+  })
   @ApiOperation({ summary: 'Get public decks (with optional search)' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -66,6 +63,10 @@ export class DeckController {
   }
 
   @Get('my')
+  @ApiOperation({
+    summary: 'Get all decks created by the current user',
+    operationId: 'getMyDecks',
+  })
   @ApiOperation({ summary: 'Get all decks created by current user' })
   @ApiResponse({ status: 200, description: "List of user's own decks" })
   findMy(@ReqUser('id') userId: string) {
@@ -73,7 +74,7 @@ export class DeckController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a deck by ID' })
+  @ApiOperation({ summary: 'Get a deck by ID', operationId: 'getDeckById' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Single deck by ID' })
   @ApiResponse({ status: 404, description: 'Deck not found' })
@@ -82,6 +83,10 @@ export class DeckController {
   }
 
   @Get('top')
+  @ApiOperation({
+    summary: 'Get top public decks by view count',
+    operationId: 'getTopDecks',
+  })
   @ApiOperation({ summary: 'Get top public decks by views' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
   @ApiResponse({ status: 200, description: 'Array of top decks' })
@@ -89,8 +94,22 @@ export class DeckController {
     return this.deckService.findTopByViews(Number(limit));
   }
 
+  @Post()
+  @ApiOperation({
+    summary: 'Create a new deck',
+    operationId: 'createDeck',
+  })
+  @ApiOperation({ summary: 'Create new deck' })
+  @ApiResponse({ status: 201, description: 'Deck created successfully' })
+  create(@Body() dto: CreateDeckDto, @ReqUser('id') userId: string) {
+    return this.deckService.create(dto, userId);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a deck' })
+  @ApiOperation({
+    summary: 'Update an existing deck',
+    operationId: 'updateDeck',
+  })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Deck updated successfully' })
   update(@Param('id') id: string, @Body() dto: UpdateDeckDto) {
@@ -98,7 +117,10 @@ export class DeckController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a deck' })
+  @ApiOperation({
+    summary: 'Delete a deck by ID',
+    operationId: 'deleteDeck',
+  })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Deck deleted successfully' })
   remove(@Param('id') id: string) {

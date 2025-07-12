@@ -26,8 +26,21 @@ import { ReqUser } from 'src/deck/decorators/req-user.decorator';
 export class FavoriteDeckController {
   constructor(private readonly favoriteService: FavoriteDeckService) {}
 
+  @Get('decks/favorites')
+  @ApiOperation({
+    summary: 'Get all favorite decks',
+    operationId: 'getFavoriteDecks',
+  })
+  @ApiResponse({ status: 200, description: 'List of favorites with deck data' })
+  getFavorites(@ReqUser('id') userId: string) {
+    return this.favoriteService.getFavoriteDecks(userId);
+  }
+
   @Post('decks/:deckId/favorite')
-  @ApiOperation({ summary: 'Add deck to favorites' })
+  @ApiOperation({
+    summary: 'Add deck to favorites',
+    operationId: 'addFavoriteDeck',
+  })
   @ApiParam({ name: 'deckId', type: String })
   @ApiResponse({ status: 201, description: 'Deck favorited' })
   addFavorite(@ReqUser('id') userId: string, @Param('deckId') deckId: string) {
@@ -35,7 +48,10 @@ export class FavoriteDeckController {
   }
 
   @Delete('decks/:deckId/favorite')
-  @ApiOperation({ summary: 'Remove deck from favorites' })
+  @ApiOperation({
+    summary: 'Remove deck from favorites',
+    operationId: 'removeFavoriteDeck',
+  })
   @ApiParam({ name: 'deckId', type: String })
   @ApiResponse({ status: 200, description: 'Deck unfavorited' })
   removeFavorite(
@@ -43,12 +59,5 @@ export class FavoriteDeckController {
     @Param('deckId') deckId: string,
   ) {
     return this.favoriteService.removeFavoriteDeck(userId, deckId);
-  }
-
-  @Get('decks/favorites')
-  @ApiOperation({ summary: 'Get all favorite decks' })
-  @ApiResponse({ status: 200, description: 'List of favorites with deck data' })
-  getFavorites(@ReqUser('id') userId: string) {
-    return this.favoriteService.getFavoriteDecks(userId);
   }
 }
