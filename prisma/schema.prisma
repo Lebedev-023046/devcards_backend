@@ -14,6 +14,7 @@ enum Role {
 
 model User {
   id       String @id @default(uuid())
+  name     String @default("")
   email    String @unique
   password String
   role     Role   @default(USER)
@@ -22,7 +23,7 @@ model User {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   userCardStatus UserCardStatus[]
-  FavoriteDecks  FavoriteDeck[]
+  favoriteDecks  FavoriteDeck[]
 }
 
 model Tag {

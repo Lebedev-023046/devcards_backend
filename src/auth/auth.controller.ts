@@ -1,8 +1,8 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { AuthDto } from './dto/auth-request.dto';
-import { AuthResponseDto } from './dto/auth-response.dto';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthService } from './auth.service';
+import { SignInDto, SignUpDto } from './dto/auth-request.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -16,8 +16,12 @@ export class AuthController {
     operationId: 'signup',
   })
   @ApiResponse({ status: 201, type: AuthResponseDto })
-  signup(@Body() dto: AuthDto): Promise<AuthResponseDto> {
-    return this.authService.signup(dto.email, dto.password);
+  signup(@Body() dto: SignUpDto): Promise<AuthResponseDto> {
+    return this.authService.signup({
+      name: dto.name,
+      email: dto.email,
+      password: dto.password,
+    });
   }
 
   @Post('signin')
@@ -27,7 +31,10 @@ export class AuthController {
     operationId: 'signin',
   })
   @ApiResponse({ status: 200, type: AuthResponseDto })
-  signin(@Body() dto: AuthDto): Promise<AuthResponseDto> {
-    return this.authService.signin(dto.email, dto.password);
+  signin(@Body() dto: SignInDto): Promise<AuthResponseDto> {
+    return this.authService.signin({
+      email: dto.email,
+      password: dto.password,
+    });
   }
 }
