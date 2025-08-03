@@ -1,27 +1,26 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
-  ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { DeckService } from './deck.service';
 import { CreateDeckDto } from './dto/create-deck.dto';
 import { UpdateDeckDto } from './dto/update-deck.dto';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
 
 import {
   ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
-  ApiTags,
   ApiParam,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import { ReqUser } from './decorators/req-user.decorator';
 import { PaginationDto } from './dto/pagination.dto';
@@ -99,7 +98,6 @@ export class DeckController {
     summary: 'Create a new deck',
     operationId: 'createDeck',
   })
-  @ApiOperation({ summary: 'Create new deck' })
   @ApiResponse({ status: 201, description: 'Deck created successfully' })
   create(@Body() dto: CreateDeckDto, @ReqUser('id') userId: string) {
     return this.deckService.create(dto, userId);

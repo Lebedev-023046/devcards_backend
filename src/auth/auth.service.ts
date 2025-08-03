@@ -1,14 +1,14 @@
 import {
-  Injectable,
   ConflictException,
+  Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { AuthResponseDto } from './dto/auth-response.dto';
-import { SignInDto, SignUpDto } from './dto/auth-request.dto';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { SignInDto, SignUpDto } from './dto/auth-request.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -35,7 +35,7 @@ export class AuthService {
         },
       });
 
-      const token = this.signToken(user.id, user.email);
+      const token = this.signToken(user.id);
 
       return { access_token: token };
     } catch (error) {
@@ -56,13 +56,13 @@ export class AuthService {
       throw new UnauthorizedException('Wrong password');
     }
 
-    const token = this.signToken(user.id, user.email);
+    const token = this.signToken(user.id);
 
     return { access_token: token };
   }
 
-  private signToken(userId: string, email: string): string {
-    const payload = { sub: userId, email };
+  private signToken(userId: string): string {
+    const payload = { sub: userId };
     return this.jwt.sign(payload);
   }
 }

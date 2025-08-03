@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateDeckDto } from './dto/create-deck.dto';
 import { UpdateDeckDto } from './dto/update-deck.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 interface FindPublicParams {
   page?: number;
@@ -14,12 +19,27 @@ interface FindPublicParams {
 export class DeckService {
   constructor(private prisma: PrismaService) {}
   async create(dto: CreateDeckDto, userId: string) {
-    return this.prisma.deck.create({
-      data: {
-        ...dto,
-        ownerId: userId,
-      },
-    });
+    try {
+      return await this.prisma.deck.create({
+        data: {
+          title: dto.title,
+          description: dto.description || '',
+          isPublic: dto.isPublic ?? true,
+          coverImageUrl: dto.coverImageUrl || '',
+          ownerId: userId,
+          // deckTags: ... // если нужны, добавляй только если есть tagIds
+        },
+      });
+    } catch (error) {
+      console.error('Create Deck error:', error);
+      if (error.code === 'P2002') {
+        throw new BadRequestException('Deck with this title already exists');
+      }
+      if (error.code === 'P2025') {
+        throw new BadRequestException('Some tag does not exist');
+      }
+      throw new InternalServerErrorException('Failed to create deck');
+    }
   }
 
   async findAllPublic({
@@ -101,7 +121,17 @@ export class DeckService {
   async update(id: string, dto: UpdateDeckDto) {
     return this.prisma.deck.update({
       where: { id },
-      data: dto,
+      data: {
+        title: dto.title,
+        description: dto.description,
+        isPublic: dto.isPublic,
+
+        deckTags: {
+          create: dto.tagIds?.map((tagId) => ({
+            tag: { connect: { id: tagId } },
+          })),
+        },
+      },
     });
   }
 
