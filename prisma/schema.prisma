@@ -45,8 +45,10 @@ model DeckTag {
 model Deck {
   id          String  @id @default(uuid())
   title       String
-  description String?
+  description String  @default("")
   isPublic    Boolean @default(true)
+
+  coverImageUrl String @default("")
 
   owner   User   @relation("UserDecks", fields: [ownerId], references: [id])
   ownerId String
