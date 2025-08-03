@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateDeckDto {
   @ApiProperty({
@@ -16,7 +16,7 @@ export class CreateDeckDto {
   })
   @IsOptional()
   @IsString()
-  description?: string;
+  description: string;
 
   @ApiProperty({
     example: true,
@@ -25,5 +25,29 @@ export class CreateDeckDto {
   })
   @IsOptional()
   @IsBoolean()
-  isPublic?: boolean;
+  isPublic: boolean;
+
+  @ApiProperty({ example: ['tagId1', 'tagId2'], required: false })
+  @IsOptional()
+  @IsString({ each: true })
+  tagIds?: string[];
+
+  @ApiProperty({ example: 'https://...', required: false })
+  @IsOptional()
+  @IsString()
+  coverImageUrl?: string;
+
+  @ApiProperty({
+    example: [
+      { question: 'What is JSX?', answer: 'JSX is ...', type: 'open' },
+      { question: 'React is a library?', answer: 'true', type: 'boolean' },
+    ],
+    required: false,
+  })
+  @IsOptional()
+  cards?: Array<{
+    question: string;
+    answer: string;
+    type: 'open' | 'boolean' | 'multipleChoice';
+  }>;
 }
