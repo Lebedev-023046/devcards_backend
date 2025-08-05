@@ -1,13 +1,35 @@
 // src/deck-tag/deck-tag.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class DeckTagService {
   constructor(private prisma: PrismaService) {}
 
-  async getAllTags() {
-    return this.prisma.tag.findMany({ orderBy: { name: 'asc' } });
+  async getAllTags({ page = 1, limit = 10, search }: any) {
+    const where = search
+      ? { name: { contains: search, mode: Prisma.QueryMode.insensitive } }
+      : {};
+    const skip = (page - 1) * limit;
+
+    const [tags, total] = await Promise.all([
+      this.prisma.tag.findMany({
+        where,
+        skip,
+        take: limit,
+      }),
+      this.prisma.tag.count(),
+    ]);
+
+    const lastPage = Math.ceil(total / limit);
+
+    return {
+      data: tags,
+      total,
+      page,
+      lastPage,
+    };
   }
 
   async getTags(deckId: string) {

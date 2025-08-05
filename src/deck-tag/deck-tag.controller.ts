@@ -1,21 +1,22 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Param,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { DeckTagService } from './deck-tag.service';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import {
-  ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
   ApiParam,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { DeckTagService } from './deck-tag.service';
 
 class CreateTagDto {
   name: string;
@@ -31,8 +32,12 @@ export class DeckTagController {
   @Get('tags')
   @ApiOperation({ summary: 'Get all tags', operationId: 'getAllDeckTags' })
   @ApiResponse({ status: 200, description: 'List of tags' })
-  getAll() {
-    return this.deckTagService.getAllTags();
+  getAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('search') search?: string,
+  ) {
+    return this.deckTagService.getAllTags({ page, limit, search });
   }
 
   @Get('decks/:deckId/tags')

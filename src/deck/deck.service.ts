@@ -26,8 +26,22 @@ export class DeckService {
           description: dto.description || '',
           isPublic: dto.isPublic ?? true,
           coverImageUrl: dto.coverImageUrl || '',
+          totalCards: 0,
           ownerId: userId,
-          // deckTags: ... // если нужны, добавляй только если есть tagIds
+          ...(dto.tagIds?.length
+            ? {
+                deckTags: {
+                  create: dto.tagIds.map((tagId) => ({
+                    tag: { connect: { id: tagId } },
+                  })),
+                },
+              }
+            : {}),
+        },
+        include: {
+          deckTags: {
+            include: { tag: true },
+          },
         },
       });
     } catch (error) {
@@ -69,7 +83,12 @@ export class DeckService {
     }
 
     const [items, total] = await Promise.all([
-      this.prisma.deck.findMany({ where, skip, take: limit }),
+      this.prisma.deck.findMany({
+        where,
+        skip,
+        take: limit,
+        include: { deckTags: { include: { tag: true } } },
+      }),
       this.prisma.deck.count({ where }),
     ]);
 
@@ -89,11 +108,18 @@ export class DeckService {
   }
 
   async findOne(id: string) {
+    if (!id) {
+      throw new BadRequestException('Deck id is required');
+    }
+
     const deck = await this.prisma.deck.update({
       where: { id },
       data: { views: { increment: 1 } },
       include: {
         cards: true,
+        deckTags: {
+          include: { tag: true },
+        },
       },
     });
 
@@ -119,6 +145,10 @@ export class DeckService {
   }
 
   async update(id: string, dto: UpdateDeckDto) {
+    if (!id) {
+      throw new BadRequestException('Deck id is required');
+    }
+
     return this.prisma.deck.update({
       where: { id },
       data: {
@@ -136,8 +166,24 @@ export class DeckService {
   }
 
   async remove(id: string) {
-    return this.prisma.deck.delete({
-      where: { id },
-    });
+    if (!id) {
+      throw new BadRequestException('Deck id is required');
+    }
+
+    const deck = await this.prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      throw new NotFoundException(`Deck not found`);
+    }
+
+    try {
+      return await this.prisma.deck.delete({
+        where: { id },
+      });
+    } catch (error) {
+      console.error('[DeckService] Delete error:', error); // <-- сюда смотри!
+      throw new InternalServerErrorException(
+        error.message || 'Failed to delete deck',
+      );
+    }
   }
 }
