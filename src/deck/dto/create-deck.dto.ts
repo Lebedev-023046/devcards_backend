@@ -19,6 +19,15 @@ export class CreateDeckDto {
   description: string;
 
   @ApiProperty({
+    example: 0,
+    description: 'Number of cards in the deck',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  totalCards: number;
+
+  @ApiProperty({
     example: true,
     description: 'Whether the deck is publicly visible',
     default: true,

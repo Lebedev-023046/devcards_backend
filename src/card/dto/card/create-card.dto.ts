@@ -1,17 +1,21 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { CardType } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
-  IsString,
-  IsArray,
-  ValidateNested,
   ArrayMinSize,
+  IsArray,
   IsEnum,
   IsNotEmpty,
+  IsString,
+  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { CreateOptionDto } from '../option/create-option.dto';
-import { CardType } from '@prisma/client';
-import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCardDto {
+  @IsString()
+  @ApiProperty()
+  deckId: string;
+
   @IsString()
   @IsNotEmpty()
   @ApiProperty()
@@ -22,13 +26,13 @@ export class CreateCardDto {
   type: CardType;
 
   @IsString()
-  @ApiProperty()
-  deckId: string;
+  @ApiProperty({ required: false })
+  answer?: string;
 
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateOptionDto)
   @ApiProperty({ type: [CreateOptionDto] })
-  options: CreateOptionDto[];
+  options?: CreateOptionDto[];
 }
