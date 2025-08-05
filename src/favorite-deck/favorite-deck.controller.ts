@@ -1,23 +1,24 @@
 import {
+  Body,
   Controller,
-  Post,
   Delete,
   Get,
   Param,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
 
 import {
-  ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
   ApiParam,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { FavoriteDeckService } from './favorite-deck.service';
 import { ReqUser } from 'src/deck/decorators/req-user.decorator';
+import { FavoriteDeckService } from './favorite-deck.service';
 
 @ApiTags('Favorites')
 @ApiBearerAuth()
@@ -26,7 +27,7 @@ import { ReqUser } from 'src/deck/decorators/req-user.decorator';
 export class FavoriteDeckController {
   constructor(private readonly favoriteService: FavoriteDeckService) {}
 
-  @Get('decks/favorites')
+  @Get('me/decks/favorites')
   @ApiOperation({
     summary: 'Get all favorite decks',
     operationId: 'getFavoriteDecks',
@@ -36,18 +37,27 @@ export class FavoriteDeckController {
     return this.favoriteService.getFavoriteDecks(userId);
   }
 
-  @Post('decks/:deckId/favorite')
+  @Get('me/decks/favorites/ids')
+  @ApiOperation({
+    summary: 'Get all favorite deck ids',
+    operationId: 'getFavoriteDeckIds',
+  })
+  @ApiResponse({ status: 200, description: 'List of favorite deck ids' })
+  getFavoriteDeckIds(@ReqUser('id') userId: string) {
+    return this.favoriteService.getFavoriteDeckIds(userId);
+  }
+
+  @Post('/me/decks/favorites')
   @ApiOperation({
     summary: 'Add deck to favorites',
     operationId: 'addFavoriteDeck',
   })
   @ApiParam({ name: 'deckId', type: String })
   @ApiResponse({ status: 201, description: 'Deck favorited' })
-  addFavorite(@ReqUser('id') userId: string, @Param('deckId') deckId: string) {
+  addFavorite(@ReqUser('id') userId: string, @Body('deckId') deckId: string) {
     return this.favoriteService.addFavoriteDeck(userId, deckId);
   }
-
-  @Delete('decks/:deckId/favorite')
+  @Delete('/me/decks/favorites/:deckId')
   @ApiOperation({
     summary: 'Remove deck from favorites',
     operationId: 'removeFavoriteDeck',
