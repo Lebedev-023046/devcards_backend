@@ -33,22 +33,23 @@ model Tag {
 }
 
 model DeckTag {
-  deck   Deck   @relation(fields: [deckId], references: [id])
+  deck   Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
   deckId String
 
-  tag   Tag    @relation(fields: [tagId], references: [id])
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId String
 
   @@id([deckId, tagId])
 }
 
 model Deck {
-  id          String  @id @default(uuid())
-  title       String
-  description String  @default("")
-  isPublic    Boolean @default(true)
+  id            String  @id @default(uuid())
+  title         String
+  description   String  @default("")
+  isPublic      Boolean @default(true)
+  coverImageUrl String  @default("")
 
-  coverImageUrl String @default("")
+  totalCards Int @default(0)
 
   owner   User   @relation("UserDecks", fields: [ownerId], references: [id])
   ownerId String
@@ -79,22 +80,28 @@ model FavoriteDeck {
 enum CardType {
   SINGLE_CHOICE
   MULTI_CHOICE
+  // AI_ANSWER
   INFO
 }
 
 model Card {
-  id       String   @id @default(uuid())
+  id       String @id @default(uuid())
   question String
-  type     CardType @default(SINGLE_CHOICE)
 
-  deck   Deck   @relation(fields: [deckId], references: [id])
-  deckId String
+  type CardType @default(SINGLE_CHOICE)
 
+  // Для INFO, AI_ANSWER, TEXT_ANSWER
+  answer String? // текстовый ответ или пояснение
+
+  //  Для CHOICE
   options Option[]
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   userCardStatus UserCardStatus[]
+
+  deck   Deck   @relation(fields: [deckId], references: [id])
+  deckId String
 }
 
 model Option {
