@@ -1,20 +1,43 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  for (let i = 1; i <= 10; i++) {
+  // 1. Create a default Admin User
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@devcards.com' },
+    update: {},
+    create: {
+      email: 'admin@devcards.com',
+      password: 'password123',
+      role: Role.ADMIN,
+    },
+  });
+
+  // 2. Create a default Deck
+  const deck = await prisma.deck.create({
+    data: {
+      title: 'General Programming',
+      description: 'Test your knowledge on general programming concepts.',
+      isPublic: true,
+      ownerId: admin.id,
+    },
+  });
+
+  // 3. Create Cards for the Deck
+  for (let i = 1; i <= 5; i++) {
     await prisma.card.create({
       data: {
-        title: `Card #${i}`,
+        question: `What is concept #${i}?`,
+        deckId: deck.id,
         options: {
           create: [
             {
-              text: `Option A for card ${i}`,
+              text: `Correct Answer for concept ${i}`,
               isCorrect: true,
             },
             {
-              text: `Option B for card ${i}`,
+              text: `Incorrect Answer for concept ${i}`,
               isCorrect: false,
             },
           ],
@@ -23,7 +46,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Seed complete: 10 cards with options added');
+  console.log('✅ Seed complete: Admin user, 1 deck, and 5 cards added');
 }
 
 main()
@@ -31,4 +54,6 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => {
+    void prisma.$disconnect();
+  });
