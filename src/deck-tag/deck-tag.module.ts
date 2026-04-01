@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
-import { DeckTagService } from './deck-tag.service';
-import { DeckTagController } from './deck-tag.controller';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { DeckTagController } from './deck-tag.controller';
+import { DeckTagService } from './deck-tag.service';
 
 @Module({
   imports: [PrismaModule],
-  providers: [DeckTagService],
+  providers: [DeckTagService, RolesGuard],
   controllers: [DeckTagController],
 })
 export class DeckTagModule {}

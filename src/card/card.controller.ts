@@ -1,27 +1,30 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
+  Controller,
+  Delete,
+  Get,
   Param,
   Patch,
-  Delete,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CardService } from './card.service';
-import { CreateCardDto } from './dto/card/create-card.dto';
-import { UpdateCardDto } from './dto/card/update-card.dto';
 import {
-  ApiTags,
-  ApiResponse,
-  ApiParam,
-  ApiQuery,
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { PaginationDto } from './dto/card/pagination.dto';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { ReqUser } from 'src/deck/decorators/req-user.decorator';
+import { CardService } from './card.service';
+import { BulkDeleteCardsDto } from './dto/card/bulk-delete-cards.dto';
+import { CreateCardDto } from './dto/card/create-card.dto';
+import { PaginationDto } from './dto/card/pagination.dto';
+import { QueryCardsDto } from './dto/card/query-cards.dto';
+import { UpdateCardDto } from './dto/card/update-card.dto';
 
 @ApiTags('Cards')
 @ApiBearerAuth()
@@ -29,6 +32,15 @@ import { JwtGuard } from 'src/auth/guards/jwt.guard';
 @Controller('cards')
 export class CardController {
   constructor(private readonly cardService: CardService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Get paginated cards with deck, search and type filters',
+    operationId: 'getCards',
+  })
+  findAll(@Query() query: QueryCardsDto, @ReqUser('id') userId: string) {
+    return this.cardService.findAll(query, userId);
+  }
 
   @Get('/by-deck/:deckId')
   @ApiOperation({
@@ -42,8 +54,28 @@ export class CardController {
   findAllByDeck(
     @Param('deckId') deckId: string,
     @Query() query: PaginationDto,
+    @ReqUser('id') userId: string,
   ) {
-    return this.cardService.findAllInDeck(deckId, query);
+    return this.cardService.findAllInDeck(deckId, query, userId);
+  }
+
+  @Get('validate-question')
+  @ApiOperation({
+    summary: 'Validate card question uniqueness inside a deck',
+    operationId: 'validateCardQuestion',
+  })
+  validateQuestion(
+    @Query('deckId') deckId: string,
+    @Query('question') question: string,
+    @ReqUser('id') userId: string,
+    @Query('excludeId') excludeId?: string,
+  ) {
+    return this.cardService.validateQuestion(
+      deckId,
+      question,
+      userId,
+      excludeId,
+    );
   }
 
   @Get(':id')
@@ -52,8 +84,8 @@ export class CardController {
     operationId: 'getCardById',
   })
   @ApiResponse({ status: 200, description: 'Single card by ID' })
-  findOne(@Param('id') id: string) {
-    return this.cardService.findOne(id);
+  findOne(@Param('id') id: string, @ReqUser('id') userId: string) {
+    return this.cardService.findOne(id, userId);
   }
 
   @Post()
@@ -62,8 +94,27 @@ export class CardController {
     operationId: 'createCard',
   })
   @ApiResponse({ status: 201, description: 'Card created successfully' })
-  create(@Body() dto: CreateCardDto) {
-    return this.cardService.create(dto);
+  create(@Body() dto: CreateCardDto, @ReqUser('id') userId: string) {
+    return this.cardService.create(dto, userId);
+  }
+
+  @Post('/bulk')
+  @ApiOperation({
+    summary: 'Create new cards in bulk',
+    operationId: 'createCards',
+  })
+  @ApiResponse({ status: 201, description: 'Card created successfully' })
+  createMany(@Body() dto: CreateCardDto[], @ReqUser('id') userId: string) {
+    return this.cardService.createMany(dto, userId);
+  }
+
+  @Delete('/bulk')
+  @ApiOperation({
+    summary: 'Delete cards in bulk',
+    operationId: 'bulkDeleteCards',
+  })
+  bulkDelete(@Body() dto: BulkDeleteCardsDto, @ReqUser('id') userId: string) {
+    return this.cardService.bulkDelete(dto.ids, userId);
   }
 
   @Patch(':id')
@@ -72,8 +123,12 @@ export class CardController {
     operationId: 'updateCard',
   })
   @ApiResponse({ status: 200, description: 'Card updated successfully' })
-  update(@Param('id') id: string, @Body() dto: UpdateCardDto) {
-    return this.cardService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCardDto,
+    @ReqUser('id') userId: string,
+  ) {
+    return this.cardService.update(id, dto, userId);
   }
 
   @Delete(':id')
@@ -82,7 +137,7 @@ export class CardController {
     operationId: 'deleteCard',
   })
   @ApiResponse({ status: 200, description: 'Card deleted successfully' })
-  remove(@Param('id') id: string) {
-    return this.cardService.remove(id);
+  remove(@Param('id') id: string, @ReqUser('id') userId: string) {
+    return this.cardService.remove(id, userId);
   }
 }

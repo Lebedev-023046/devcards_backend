@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CardType } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ReviewCardDto } from './dto/review-card.dto';
-import { CardType } from '@prisma/client';
 import { CardStatus, ProgressFilter } from './types/filter';
 
 @Injectable()
@@ -32,20 +32,22 @@ export class ProgressService {
     let isCorrect = false;
 
     switch (card.type) {
-      case CardType.INFO:
+      case CardType.INFO: {
         // consider viewed card as correct
         if (viewed) {
           isCorrect = true;
         }
         break;
+      }
 
-      case CardType.SINGLE_CHOICE:
+      case CardType.SINGLE_CHOICE: {
         // detect correct option by id
         const correctOption = card.options.find((o) => o.isCorrect);
         isCorrect = correctOption?.id === answer;
         break;
+      }
 
-      case CardType.MULTI_CHOICE:
+      case CardType.MULTI_CHOICE: {
         // detect correct options by id
         const correctIds = card.options
           .filter((o) => o.isCorrect)
@@ -55,6 +57,7 @@ export class ProgressService {
           answers.length === correctIds.length &&
           answers.every((id) => correctIds.includes(id));
         break;
+      }
     }
 
     // update user card status based on viewed and correct

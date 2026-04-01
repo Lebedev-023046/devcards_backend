@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,45 +8,96 @@ import { CardType, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCardDto } from './dto/card/create-card.dto';
 import { PaginationDto } from './dto/card/pagination.dto';
+import { CardSortBy, QueryCardsDto } from './dto/card/query-cards.dto';
 import { UpdateCardDto } from './dto/card/update-card.dto';
 
 @Injectable()
 export class CardService {
   constructor(private prisma: PrismaService) {}
 
-  async findAllInDeck(deckId: string, query: PaginationDto) {
-    const { page = 1, limit = 10 } = query;
+  async findAll(query: QueryCardsDto, userId: string) {
+    const { deckId, page = 1, limit = 20, query: search, type } = query;
     const skip = (page - 1) * limit;
+    const where = this.buildWhere({ deckId, query: search, type, userId });
 
     const [cards, total] = await Promise.all([
       this.prisma.card.findMany({
-        where: { deckId },
+        where,
         include: { options: true },
         skip,
         take: limit,
+        orderBy: {
+          [query.sortBy ?? CardSortBy.UPDATED_AT]: query.sortOrder ?? 'desc',
+        },
       }),
-      this.prisma.card.count({ where: { deckId } }),
+      this.prisma.card.count({ where }),
     ]);
 
     return {
-      data: cards,
+      items: cards,
       total,
       page,
+      limit,
       lastPage: Math.ceil(total / limit),
     };
   }
 
-  async findOne(id: string) {
-    const card = await this.prisma.card.findUnique({
+  async findAllInDeck(deckId: string, query: PaginationDto, userId: string) {
+    await this.ensureDeckOwner(deckId, userId);
+
+    return this.findAll(
+      {
+        deckId,
+        page: query.page,
+        limit: query.limit,
+      },
+      userId,
+    );
+  }
+
+  async validateQuestion(
+    deckId: string,
+    question: string,
+    userId: string,
+    excludeId?: string,
+  ) {
+    await this.ensureDeckOwner(deckId, userId);
+
+    if (!question?.trim()) {
+      throw new BadRequestException('Question is required');
+    }
+
+    const existing = await this.prisma.card.findFirst({
+      where: {
+        deckId,
+        question: question.trim(),
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true },
+    });
+
+    return {
+      available: !existing,
+      deckId,
+      question: question.trim(),
+      excludeId: excludeId ?? null,
+    };
+  }
+
+  async findOne(id: string, userId: string) {
+    const card = await this.prisma.card.findFirst({
       where: { id },
       include: { options: true },
     });
 
     if (!card) throw new NotFoundException('Card not found');
+    await this.ensureDeckOwner(card.deckId, userId);
     return card;
   }
 
-  async create(dto: CreateCardDto) {
+  async create(dto: CreateCardDto, userId: string) {
+    await this.ensureDeckOwner(dto.deckId, userId);
+    await this.ensureQuestionAvailable(dto.deckId, dto.question);
     this.validateOptions(dto);
 
     const data: Prisma.CardUncheckedCreateInput = {
@@ -82,11 +134,121 @@ export class CardService {
     });
   }
 
-  async update(id: string, dto: UpdateCardDto) {
+  async createMany(cards: CreateCardDto[], userId: string) {
+    cards.forEach((dto) => this.validateOptions(dto));
+
+    if (cards.length === 0) return [];
+
+    const deckId = cards[0].deckId;
+    await this.ensureDeckOwner(deckId, userId);
+
+    if (cards.some((card) => card.deckId !== deckId)) {
+      throw new BadRequestException(
+        'All cards in bulk create must use one deck',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const created = await Promise.all(
+        cards.map((dto) => {
+          const base = {
+            question: dto.question,
+            type: dto.type,
+            deckId: dto.deckId,
+          } as Prisma.CardUncheckedCreateInput;
+
+          const data =
+            dto.type === 'INFO'
+              ? { ...base, answer: dto.answer }
+              : {
+                  ...base,
+                  options: {
+                    create:
+                      dto.options?.map((o) => ({
+                        text: o.text,
+                        isCorrect: o.isCorrect,
+                      })) ?? [],
+                  },
+                };
+
+          return tx.card.create({ data, include: { options: true } });
+        }),
+      );
+
+      await tx.deck.update({
+        where: { id: deckId },
+        data: { totalCards: { increment: cards.length } },
+      });
+
+      return created;
+    });
+  }
+
+  async bulkDelete(ids: string[], userId: string) {
+    const cards = await this.prisma.card.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        deckId: true,
+        deck: {
+          select: {
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    const ownedCards = cards.filter((card) => card.deck.ownerId === userId);
+    const grouped = ownedCards.reduce<Record<string, number>>((acc, card) => {
+      acc[card.deckId] = (acc[card.deckId] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.card.deleteMany({
+        where: {
+          id: { in: ownedCards.map((card) => card.id) },
+        },
+      });
+
+      await Promise.all(
+        Object.entries(grouped).map(([deckId, count]) =>
+          tx.deck.update({
+            where: { id: deckId },
+            data: { totalCards: { decrement: count } },
+          }),
+        ),
+      );
+    });
+
+    return {
+      requested: ids.length,
+      deleted: ownedCards.length,
+      deletedIds: ownedCards.map((card) => card.id),
+    };
+  }
+
+  async update(id: string, dto: UpdateCardDto, userId: string) {
+    const existing = await this.prisma.card.findUnique({
+      where: { id },
+      select: { deckId: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Card not found');
+    }
+
+    await this.ensureDeckOwner(existing.deckId, userId);
+
+    if (dto.question) {
+      await this.ensureQuestionAvailable(existing.deckId, dto.question, id);
+    }
+
     if (dto.options) {
       this.validateOptions({
         type: dto.type,
         options: dto.options,
+        answer: dto.answer,
       });
 
       await this.prisma.option.deleteMany({
@@ -99,6 +261,7 @@ export class CardService {
       data: {
         question: dto.question,
         type: dto.type,
+        answer: dto.type === CardType.INFO ? dto.answer : null,
         options: dto.options
           ? {
               create: dto.options.map((opt) => ({
@@ -112,14 +275,24 @@ export class CardService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
     return this.prisma.$transaction(async (prisma) => {
       const card = await prisma.card.findUnique({
         where: { id },
-        select: { deckId: true },
+        select: {
+          deckId: true,
+          deck: {
+            select: {
+              ownerId: true,
+            },
+          },
+        },
       });
 
       if (!card) throw new NotFoundException('Card not found');
+      if (card.deck.ownerId !== userId) {
+        throw new ForbiddenException('You do not have access to this card');
+      }
 
       const deletedCard = await prisma.card.delete({
         where: { id },
@@ -132,6 +305,76 @@ export class CardService {
 
       return deletedCard;
     });
+  }
+
+  private buildWhere({
+    deckId,
+    query,
+    type,
+    userId,
+  }: Pick<QueryCardsDto, 'deckId' | 'query' | 'type'> & {
+    userId: string;
+  }): Prisma.CardWhereInput {
+    const where: Prisma.CardWhereInput = {};
+
+    where.deck = {
+      ownerId: userId,
+    };
+
+    if (deckId) {
+      where.deckId = deckId;
+    }
+
+    if (type) {
+      where.type = type;
+    }
+
+    if (query?.trim()) {
+      where.OR = [
+        { question: { contains: query.trim(), mode: 'insensitive' } },
+        { answer: { contains: query.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    return where;
+  }
+
+  private async ensureDeckOwner(deckId: string, userId: string) {
+    const deck = await this.prisma.deck.findUnique({
+      where: { id: deckId },
+      select: { id: true, ownerId: true },
+    });
+
+    if (!deck) {
+      throw new NotFoundException('Deck not found');
+    }
+
+    if (deck.ownerId !== userId) {
+      throw new ForbiddenException('You do not have access to this deck');
+    }
+
+    return deck;
+  }
+
+  private async ensureQuestionAvailable(
+    deckId: string,
+    question: string,
+    excludeId?: string,
+  ) {
+    const existing = await this.prisma.card.findFirst({
+      where: {
+        deckId,
+        question: question.trim(),
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        'Card with this question already exists in the deck',
+      );
+    }
   }
 
   private validateOptions(dto: {

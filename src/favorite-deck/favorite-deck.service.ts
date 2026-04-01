@@ -1,5 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+
+type PrismaError = {
+  code?: string;
+};
 
 @Injectable()
 export class FavoriteDeckService {
@@ -25,17 +33,18 @@ export class FavoriteDeckService {
     const deck = await this.prisma.deck.findUnique({ where: { id: deckId } });
     if (!deck) throw new NotFoundException(`Deck ${deckId} not found`);
     if (!userId) throw new NotFoundException(`User ${userId} not found`);
-    if (deck.ownerId !== userId)
-      throw new NotFoundException(
-        `User ${userId} is not owner of deck ${deckId}`,
-      );
 
     try {
-      return this.prisma.favoriteDeck.create({
+      return await this.prisma.favoriteDeck.create({
         data: { userId, deckId },
       });
-    } catch (error) {
-      console.log(error);
+    } catch (error: unknown) {
+      const prismaError = error as PrismaError;
+      if (prismaError.code === 'P2002') {
+        throw new ConflictException('Deck already added to favorites');
+      }
+
+      throw error;
     }
   }
 

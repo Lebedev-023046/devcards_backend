@@ -1,8 +1,19 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
 import { SignInDto, SignUpDto } from './dto/auth-request.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { DevSignInDto } from './dto/dev-signin.dto';
+import { JwtGuard } from './guards/jwt.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -36,5 +47,27 @@ export class AuthController {
       email: dto.email,
       password: dto.password,
     });
+  }
+
+  @Post('dev-signin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Fake auth for frontend practice flows',
+    operationId: 'devSignin',
+  })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
+  devSignin(@Body() dto: DevSignInDto): Promise<AuthResponseDto> {
+    return this.authService.devSignin(dto);
+  }
+
+  @Get('me')
+  @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Get current authenticated user',
+    operationId: 'getAuthMe',
+  })
+  @ApiResponse({ status: 200, description: 'Authenticated user profile' })
+  me(@CurrentUser('id') userId: string) {
+    return this.authService.getMe(userId);
   }
 }

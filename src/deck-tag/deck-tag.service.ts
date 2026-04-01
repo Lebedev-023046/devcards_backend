@@ -3,12 +3,18 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
+type GetAllTagsParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+};
+
 @Injectable()
 export class DeckTagService {
   constructor(private prisma: PrismaService) {}
 
-  async getAllTags({ page = 1, limit = 10, search }: any) {
-    const where = search
+  async getAllTags({ page = 1, limit = 10, search }: GetAllTagsParams) {
+    const where: Prisma.TagWhereInput = search
       ? { name: { contains: search, mode: Prisma.QueryMode.insensitive } }
       : {};
     const skip = (page - 1) * limit;
@@ -19,7 +25,7 @@ export class DeckTagService {
         skip,
         take: limit,
       }),
-      this.prisma.tag.count(),
+      this.prisma.tag.count({ where }),
     ]);
 
     const lastPage = Math.ceil(total / limit);
@@ -42,6 +48,19 @@ export class DeckTagService {
 
   async createTag(name: string) {
     return this.prisma.tag.create({ data: { name } });
+  }
+
+  async updateTag(id: string, name: string) {
+    return this.prisma.tag.update({
+      where: { id },
+      data: { name },
+    });
+  }
+
+  async deleteTag(id: string) {
+    return this.prisma.tag.delete({
+      where: { id },
+    });
   }
 
   async addTag(deckId: string, tagId: string) {

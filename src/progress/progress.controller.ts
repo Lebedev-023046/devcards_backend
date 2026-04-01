@@ -1,24 +1,23 @@
 import {
+  Body,
   Controller,
-  Post,
+  Delete,
   Get,
   Param,
-  Body,
-  UseGuards,
-  Req,
-  Delete,
+  Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ProgressService } from './progress.service';
-import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { ReqUser } from 'src/deck/decorators/req-user.decorator';
 import { ReviewCardDto } from './dto/review-card.dto';
+import { ProgressService } from './progress.service';
 import { ProgressFilter } from './types/filter';
 
 @ApiTags('Progress')

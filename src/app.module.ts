@@ -11,6 +11,7 @@ import { ProgressModule } from './progress/progress.module';
 import { FavoriteDeckModule } from './favorite-deck/favorite-deck.module';
 import { DeckTagModule } from './deck-tag/deck-tag.module';
 import { UserModule } from './user/user.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { UserModule } from './user/user.module';
     FavoriteDeckModule,
     DeckTagModule,
     UserModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

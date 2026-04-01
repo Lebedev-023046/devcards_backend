@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -15,16 +16,21 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { DeckTagService } from './deck-tag.service';
 
 class CreateTagDto {
   name: string;
 }
 
+class UpdateTagDto {
+  name: string;
+}
+
 @ApiTags('DeckTags')
-@ApiBearerAuth()
-@UseGuards(JwtGuard)
 @Controller()
 export class DeckTagController {
   constructor(private readonly deckTagService: DeckTagService) {}
@@ -52,13 +58,36 @@ export class DeckTagController {
   }
 
   @Post('tags')
+  @UseGuards(JwtGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Create a new tag', operationId: 'createDeckTag' })
   @ApiResponse({ status: 201, description: 'Tag created' })
   createTag(@Body() dto: CreateTagDto) {
     return this.deckTagService.createTag(dto.name);
   }
 
+  @Patch('tags/:id')
+  @UseGuards(JwtGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update tag', operationId: 'updateDeckTag' })
+  updateTag(@Param('id') id: string, @Body() dto: UpdateTagDto) {
+    return this.deckTagService.updateTag(id, dto.name);
+  }
+
+  @Delete('tags/:id')
+  @UseGuards(JwtGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Delete tag', operationId: 'deleteTag' })
+  deleteTag(@Param('id') id: string) {
+    return this.deckTagService.deleteTag(id);
+  }
+
   @Post('decks/:deckId/tags/:tagId')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Attach a tag to a deck',
     operationId: 'addDeckTag',
@@ -71,6 +100,8 @@ export class DeckTagController {
   }
 
   @Delete('decks/:deckId/tags/:tagId')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Detach a tag from a deck',
     operationId: 'deleteDeckTag',
