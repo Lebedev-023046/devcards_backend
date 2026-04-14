@@ -7,13 +7,33 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiProperty,
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { UserService } from './user.service';
+
+class UserProfileDto {
+  @ApiProperty({ example: 'user-id' })
+  id: string;
+
+  @ApiProperty({ example: 'John Doe' })
+  name: string;
+
+  @ApiProperty({ example: 25 })
+  age: number;
+
+  @ApiProperty({ example: 'user@example.com' })
+  email: string;
+
+  @ApiProperty({ example: 'USER', enum: ['USER', 'ADMIN'] })
+  role: string;
+}
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -28,6 +48,7 @@ export class UserController {
     return {
       id: user.id,
       name: user.name,
+      age: user.age,
       email: user.email,
       role: user.role,
     };
@@ -38,6 +59,8 @@ export class UserController {
     summary: 'Get current user',
     operationId: 'getCurrentUser',
   })
+  @ApiOkResponse({ type: UserProfileDto })
+  @ApiNotFoundResponse({ description: 'User not found' })
   async getCurrentUser(@CurrentUser('id') userId: string) {
     const user = await this.userService.getUser(userId);
 
@@ -54,6 +77,8 @@ export class UserController {
     operationId: 'getUser',
   })
   @ApiParam({ name: 'id', required: true, type: String, example: '1' })
+  @ApiOkResponse({ type: UserProfileDto })
+  @ApiNotFoundResponse({ description: 'User not found' })
   async getUser(@Param('id') id: string) {
     const user = await this.userService.getUser(id);
 

@@ -14,16 +14,19 @@ export class DeckTagService {
   constructor(private prisma: PrismaService) {}
 
   async getAllTags({ page = 1, limit = 10, search }: GetAllTagsParams) {
+    const shouldFetchAll = limit === Infinity;
+    const skip = shouldFetchAll ? undefined : (page - 1) * limit;
+    const take = shouldFetchAll ? undefined : limit;
+
     const where: Prisma.TagWhereInput = search
       ? { name: { contains: search, mode: Prisma.QueryMode.insensitive } }
       : {};
-    const skip = (page - 1) * limit;
 
     const [tags, total] = await Promise.all([
       this.prisma.tag.findMany({
         where,
         skip,
-        take: limit,
+        take,
       }),
       this.prisma.tag.count({ where }),
     ]);
@@ -31,10 +34,13 @@ export class DeckTagService {
     const lastPage = Math.ceil(total / limit);
 
     return {
-      data: tags,
-      total,
-      page,
-      lastPage,
+      items: tags,
+      meta: {
+        total,
+        page,
+        limit,
+        lastPage,
+      },
     };
   }
 

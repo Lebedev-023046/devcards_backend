@@ -7,7 +7,6 @@ import {
 import { CardType, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCardDto } from './dto/card/create-card.dto';
-import { PaginationDto } from './dto/card/pagination.dto';
 import { CardSortBy, QueryCardsDto } from './dto/card/query-cards.dto';
 import { UpdateCardDto } from './dto/card/update-card.dto';
 
@@ -35,24 +34,13 @@ export class CardService {
 
     return {
       items: cards,
-      total,
-      page,
-      limit,
-      lastPage: Math.ceil(total / limit),
-    };
-  }
-
-  async findAllInDeck(deckId: string, query: PaginationDto, userId: string) {
-    await this.ensureDeckOwner(deckId, userId);
-
-    return this.findAll(
-      {
-        deckId,
-        page: query.page,
-        limit: query.limit,
+      meta: {
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
       },
-      userId,
-    );
+    };
   }
 
   async validateQuestion(

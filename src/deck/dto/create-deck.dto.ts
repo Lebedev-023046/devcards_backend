@@ -1,62 +1,58 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateDeckDto {
   @ApiProperty({
     example: 'Frontend Interview Questions',
-    description: 'Title of the deck',
+    description: 'Deck title shown to users',
   })
   @IsString()
+  @MinLength(1)
+  @MaxLength(120)
   title: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'A collection of questions for frontend interviews',
-    description: 'Optional description of the deck',
-    required: false,
+    description: 'Optional short description of the deck',
   })
   @IsOptional()
   @IsString()
-  description: string;
-
-  @ApiProperty({
-    example: 0,
-    description: 'Number of cards in the deck',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  totalCards: number;
+  @MaxLength(1000)
+  description?: string;
 
   @ApiProperty({
     example: true,
-    description: 'Whether the deck is publicly visible',
+    description: 'Whether the deck is visible in the public catalog',
     default: true,
   })
   @IsOptional()
   @IsBoolean()
-  isPublic: boolean;
+  isPublic?: boolean;
 
-  @ApiProperty({ example: ['tagId1', 'tagId2'], required: false })
+  @ApiPropertyOptional({
+    example: ['tagId1', 'tagId2'],
+    description: 'List of tag ids assigned to the deck',
+    type: [String],
+  })
   @IsOptional()
+  @IsArray()
   @IsString({ each: true })
+  @ArrayUnique()
   tagIds?: string[];
 
-  @ApiProperty({ example: 'https://...', required: false })
+  @ApiPropertyOptional({
+    example: '/uploads/deck-covers/frontend-interview.png',
+    description: 'Public URL of the uploaded deck cover image',
+  })
   @IsOptional()
   @IsString()
   coverImageUrl?: string;
-
-  @ApiProperty({
-    example: [
-      { question: 'What is JSX?', answer: 'JSX is ...', type: 'open' },
-      { question: 'React is a library?', answer: 'true', type: 'boolean' },
-    ],
-    required: false,
-  })
-  @IsOptional()
-  cards?: Array<{
-    question: string;
-    answer: string;
-    type: 'open' | 'boolean' | 'multipleChoice';
-  }>;
 }

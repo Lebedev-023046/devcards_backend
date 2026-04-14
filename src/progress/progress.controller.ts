@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Query,
@@ -11,6 +12,8 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -32,6 +35,12 @@ export class ProgressController {
     summary: 'Get user progress for a deck',
     operationId: 'getDeckProgress',
   })
+  @ApiParam({ name: 'deckId', type: String })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+    enum: ['all', 'learned', 'inProgress', 'notStarted'],
+  })
   @ApiResponse({ status: 200, description: 'Deck progress data' })
   async getDeckProgress(
     @ReqUser('id') userId: string,
@@ -46,6 +55,7 @@ export class ProgressController {
     summary: 'Submit review result for a card',
     operationId: 'addCardReview',
   })
+  @ApiParam({ name: 'cardId', type: String })
   @ApiResponse({ status: 201, description: 'Review recorded' })
   async reviewCard(
     @ReqUser('id') userId: string,
@@ -56,16 +66,17 @@ export class ProgressController {
   }
 
   @Delete('decks/:deckId/progress')
+  @HttpCode(204)
   @ApiOperation({
     summary: 'Reset user progress for a deck',
     operationId: 'resetDeckProgress',
   })
-  @ApiResponse({ status: 200, description: 'Progress reset successfully' })
+  @ApiParam({ name: 'deckId', type: String })
+  @ApiResponse({ status: 204, description: 'Progress reset successfully' })
   async resetDeckProgress(
     @ReqUser('id') userId: string,
     @Param('deckId') deckId: string,
   ) {
     await this.progressService.resetDeckProgress(userId, deckId);
-    return { success: true };
   }
 }

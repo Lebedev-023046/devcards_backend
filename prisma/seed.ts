@@ -3,27 +3,27 @@ const prisma = new PrismaClient();
 
 async function main() {
   const tags = [
-    'Быстрое изучение',
-    'Английский',
-    'История',
-    'Программирование',
-    'Викторины',
-    'География',
-    'Наука',
-    'Медицина',
-    'Искусство',
-    'Математика',
-    'Факты',
-    'Музыка',
-    'Школа',
-    'Экзамен',
-    'Игры',
-    'Флэшкарты',
-    'Спорт',
-    'Языки',
-    'Психология',
-    'Логика',
-    'Разное',
+    'Fast Learning',
+    'English',
+    'History',
+    'Programming',
+    'Quizzes',
+    'Geography',
+    'Science',
+    'Medicine',
+    'Art',
+    'Mathematics',
+    'Facts',
+    'Music',
+    'School',
+    'Exam',
+    'Games',
+    'Flashcards',
+    'Sports',
+    'Languages',
+    'Psychology',
+    'Logic',
+    'Miscellaneous',
   ];
 
   // Добавляем все теги, избегая дубликатов по имени
@@ -78,6 +78,6 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
+  .finally(() => {
+    void prisma.$disconnect();
   });

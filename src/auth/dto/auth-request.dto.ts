@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, MinLength, IsNotEmpty } from 'class-validator';
+import {
+  IsEmail,
+  IsInt,
+  IsNotEmpty,
+  Max,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CredentialsDto {
   @ApiProperty({
@@ -33,4 +40,16 @@ export class SignUpDto extends CredentialsDto {
   @IsNotEmpty({ message: 'Name must not be empty' })
   @MinLength(4, { message: 'Name must be at least 4 characters long' })
   name: string;
+
+  @ApiProperty({
+    example: 25,
+    description: 'Age of the user in full years',
+    required: true,
+    minimum: 1,
+    maximum: 120,
+  })
+  @IsInt({ message: 'Age must be an integer number' })
+  @Min(1, { message: 'Age must be at least 1' })
+  @Max(120, { message: 'Age must be at most 120' })
+  age: number;
 }

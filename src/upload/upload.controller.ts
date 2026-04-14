@@ -6,7 +6,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
@@ -20,6 +27,33 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post('deck-cover')
+  @ApiOperation({
+    summary: 'Upload deck cover image',
+    operationId: 'uploadDeckCover',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Uploaded file URL',
+    schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', example: '/uploads/deck-covers/example.png' },
+      },
+    },
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({

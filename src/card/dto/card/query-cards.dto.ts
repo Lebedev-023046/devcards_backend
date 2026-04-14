@@ -1,8 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { CardType } from '@prisma/client';
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { SortOrder } from 'src/deck/dto/query-decks.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+
+export enum CardSortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
 
 export enum CardSortBy {
   CREATED_AT = 'createdAt',
@@ -11,26 +15,11 @@ export enum CardSortBy {
   TYPE = 'type',
 }
 
-export class QueryCardsDto {
+export class QueryCardsDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: 'deck-id' })
   @IsOptional()
   @IsString()
   deckId?: string;
-
-  @ApiPropertyOptional({ example: 1, default: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1;
-
-  @ApiPropertyOptional({ example: 20, default: 20 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
 
   @ApiPropertyOptional({ example: 'props' })
   @IsOptional()
@@ -47,8 +36,8 @@ export class QueryCardsDto {
   @IsEnum(CardSortBy)
   sortBy?: CardSortBy = CardSortBy.UPDATED_AT;
 
-  @ApiPropertyOptional({ enum: SortOrder, default: SortOrder.DESC })
+  @ApiPropertyOptional({ enum: CardSortOrder, default: CardSortOrder.DESC })
   @IsOptional()
-  @IsEnum(SortOrder)
-  sortOrder?: SortOrder = SortOrder.DESC;
+  @IsEnum(CardSortOrder)
+  sortOrder?: CardSortOrder = CardSortOrder.DESC;
 }

@@ -8,7 +8,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { DeckModule } from './deck/deck.module';
 import { ProgressModule } from './progress/progress.module';
-import { FavoriteDeckModule } from './favorite-deck/favorite-deck.module';
 import { DeckTagModule } from './deck-tag/deck-tag.module';
 import { UserModule } from './user/user.module';
 import { UploadModule } from './upload/upload.module';
@@ -21,7 +20,6 @@ import { UploadModule } from './upload/upload.module';
     CardModule,
     DeckModule,
     ProgressModule,
-    FavoriteDeckModule,
     DeckTagModule,
     UserModule,
     UploadModule,

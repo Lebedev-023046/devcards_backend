@@ -5,15 +5,25 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { CookieOptions, Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { SignInDto, SignUpDto } from './dto/auth-request.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { DevSignInDto } from './dto/dev-signin.dto';
 import { JwtGuard } from './guards/jwt.guard';
+
+const REFRESH_TOKEN_COOKIE = 'refresh_token';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -27,12 +37,20 @@ export class AuthController {
     operationId: 'signup',
   })
   @ApiResponse({ status: 201, type: AuthResponseDto })
-  signup(@Body() dto: SignUpDto): Promise<AuthResponseDto> {
-    return this.authService.signup({
+  async signup(
+    @Body() dto: SignUpDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const tokens = await this.authService.signup({
       name: dto.name,
       email: dto.email,
       password: dto.password,
+      age: dto.age,
     });
+
+    this.setRefreshTokenCookie(res, tokens.refresh_token);
+
+    return this.authService.toAuthResponseDto(tokens);
   }
 
   @Post('signin')
@@ -42,11 +60,18 @@ export class AuthController {
     operationId: 'signin',
   })
   @ApiResponse({ status: 200, type: AuthResponseDto })
-  signin(@Body() dto: SignInDto): Promise<AuthResponseDto> {
-    return this.authService.signin({
+  async signin(
+    @Body() dto: SignInDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const tokens = await this.authService.signin({
       email: dto.email,
       password: dto.password,
     });
+
+    this.setRefreshTokenCookie(res, tokens.refresh_token);
+
+    return this.authService.toAuthResponseDto(tokens);
   }
 
   @Post('dev-signin')
@@ -56,8 +81,49 @@ export class AuthController {
     operationId: 'devSignin',
   })
   @ApiResponse({ status: 200, type: AuthResponseDto })
-  devSignin(@Body() dto: DevSignInDto): Promise<AuthResponseDto> {
-    return this.authService.devSignin(dto);
+  async devSignin(
+    @Body() dto: DevSignInDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const tokens = await this.authService.devSignin(dto);
+
+    this.setRefreshTokenCookie(res, tokens.refresh_token);
+
+    return this.authService.toAuthResponseDto(tokens);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Rotate refresh token and return a new access token',
+    operationId: 'refresh',
+  })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
+    const refreshToken = this.extractRefreshToken(req);
+    const tokens = await this.authService.refresh(refreshToken);
+
+    this.setRefreshTokenCookie(res, tokens.refresh_token);
+
+    return this.authService.toAuthResponseDto(tokens);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Revoke refresh token and clear auth cookie',
+    operationId: 'logout',
+  })
+  @ApiResponse({ status: 204, description: 'Logged out successfully' })
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    await this.authService.logout(this.extractRefreshToken(req));
+    this.clearRefreshTokenCookie(res);
   }
 
   @Get('me')
@@ -66,8 +132,55 @@ export class AuthController {
     summary: 'Get current authenticated user',
     operationId: 'getAuthMe',
   })
+  @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Authenticated user profile' })
   me(@CurrentUser('id') userId: string) {
     return this.authService.getMe(userId);
+  }
+
+  private extractRefreshToken(req: Request): string {
+    const cookieHeader = req.headers.cookie;
+
+    if (!cookieHeader) {
+      return '';
+    }
+
+    const refreshToken = cookieHeader
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${REFRESH_TOKEN_COOKIE}=`))
+      ?.slice(`${REFRESH_TOKEN_COOKIE}=`.length);
+
+    return refreshToken ?? '';
+  }
+
+  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+      ...this.getRefreshTokenCookieOptions(),
+      maxAge: this.getRefreshTokenCookieMaxAge(),
+    });
+  }
+
+  private clearRefreshTokenCookie(res: Response): void {
+    res.cookie(REFRESH_TOKEN_COOKIE, '', {
+      ...this.getRefreshTokenCookieOptions(),
+      expires: new Date(0),
+      maxAge: 0,
+    });
+  }
+
+  private getRefreshTokenCookieMaxAge(): number {
+    const ttlDays = Number(process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS ?? '30');
+    return ttlDays * 24 * 60 * 60 * 1000;
+  }
+
+  private getRefreshTokenCookieOptions(): CookieOptions {
+    return {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite:
+        process.env.REFRESH_COOKIE_SAME_SITE === 'none' ? 'none' : 'lax',
+      path: '/auth',
+    };
   }
 }

@@ -11,8 +11,11 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiParam,
+  ApiProperty,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -21,95 +24,85 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { DeckTagService } from './deck-tag.service';
+import { PaginatedTagsDto, TagResponseDto } from './dto/tag-response.dto';
 
 class CreateTagDto {
+  @ApiProperty({ example: 'React' })
   name: string;
 }
 
 class UpdateTagDto {
+  @ApiProperty({ example: 'React Advanced' })
   name: string;
 }
 
 @ApiTags('DeckTags')
-@Controller()
+@Controller('decks-tags')
 export class DeckTagController {
   constructor(private readonly deckTagService: DeckTagService) {}
 
-  @Get('tags')
+  @Get()
   @ApiOperation({ summary: 'Get all tags', operationId: 'getAllDeckTags' })
-  @ApiResponse({ status: 200, description: 'List of tags' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({ name: 'search', required: false, type: String, example: 'react' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of tags',
+    type: PaginatedTagsDto,
+  })
   getAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('search') search?: string,
   ) {
+    console.log({ limit });
     return this.deckTagService.getAllTags({ page, limit, search });
   }
 
-  @Get('decks/:deckId/tags')
-  @ApiOperation({
-    summary: 'Get tags for a deck',
-    operationId: 'getOneDeckTags',
-  })
-  @ApiParam({ name: 'deckId', type: String })
-  @ApiResponse({ status: 200, description: 'List of deck tags' })
-  getTags(@Param('deckId') deckId: string) {
-    return this.deckTagService.getTags(deckId);
-  }
-
-  @Post('tags')
+  @Post()
   @UseGuards(JwtGuard, RolesGuard)
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Create a new tag', operationId: 'createDeckTag' })
-  @ApiResponse({ status: 201, description: 'Tag created' })
+  @ApiBody({ type: CreateTagDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Tag created',
+    type: TagResponseDto,
+  })
   createTag(@Body() dto: CreateTagDto) {
     return this.deckTagService.createTag(dto.name);
   }
 
-  @Patch('tags/:id')
+  @Patch(':id')
   @UseGuards(JwtGuard, RolesGuard)
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Update tag', operationId: 'updateDeckTag' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateTagDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Tag updated',
+    type: TagResponseDto,
+  })
   updateTag(@Param('id') id: string, @Body() dto: UpdateTagDto) {
     return this.deckTagService.updateTag(id, dto.name);
   }
 
-  @Delete('tags/:id')
+  @Delete(':id')
   @UseGuards(JwtGuard, RolesGuard)
   @ApiBearerAuth()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Delete tag', operationId: 'deleteTag' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Tag deleted',
+    type: TagResponseDto,
+  })
   deleteTag(@Param('id') id: string) {
     return this.deckTagService.deleteTag(id);
-  }
-
-  @Post('decks/:deckId/tags/:tagId')
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Attach a tag to a deck',
-    operationId: 'addDeckTag',
-  })
-  @ApiParam({ name: 'deckId', type: String })
-  @ApiParam({ name: 'tagId', type: String })
-  @ApiResponse({ status: 201, description: 'Tag attached to deck' })
-  addTag(@Param('deckId') deckId: string, @Param('tagId') tagId: string) {
-    return this.deckTagService.addTag(deckId, tagId);
-  }
-
-  @Delete('decks/:deckId/tags/:tagId')
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Detach a tag from a deck',
-    operationId: 'deleteDeckTag',
-  })
-  @ApiParam({ name: 'deckId', type: String })
-  @ApiParam({ name: 'tagId', type: String })
-  @ApiResponse({ status: 200, description: 'Tag detached from deck' })
-  removeTag(@Param('deckId') deckId: string, @Param('tagId') tagId: string) {
-    return this.deckTagService.removeTag(deckId, tagId);
   }
 }

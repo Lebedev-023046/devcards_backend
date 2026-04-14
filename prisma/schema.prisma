@@ -15,6 +15,7 @@ enum Role {
 model User {
   id       String @id @default(uuid())
   name     String @default("")
+  age      Int
   email    String @unique
   password String
   role     Role   @default(USER)
@@ -24,6 +25,18 @@ model User {
   updatedAt      DateTime         @updatedAt
   userCardStatus UserCardStatus[]
   favoriteDecks  FavoriteDeck[]
+  refreshTokens  RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Tag {

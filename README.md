@@ -27,6 +27,10 @@ In the root of the project, create a .env file:
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/devcards_db
 FRONTEND_ORIGIN=http://localhost:5173
+JWT_SECRET=change-me
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN_DAYS=30
+REFRESH_COOKIE_SAME_SITE=lax
 ```
 
 ### 4. Run Migrations and Generate Prisma Client
