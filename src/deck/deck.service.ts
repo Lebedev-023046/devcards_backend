@@ -448,10 +448,7 @@ export class DeckService {
 
     if (scope === DeckScope.MY) {
       this.addWhereCondition(where, {
-        ownerId: this.requireUserId(
-          userId,
-          'Authentication is required for scope=my',
-        ),
+        ownerId: this.requireUserId(userId, 'Authentication is required'),
       });
       return;
     }
@@ -471,7 +468,7 @@ export class DeckService {
     if (scope === DeckScope.FAVORITES) {
       const currentUserId = this.requireUserId(
         userId,
-        'Authentication is required for scope=favorites',
+        'Authentication is required',
       );
 
       this.addWhereCondition(where, {
