@@ -1,5 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { CardType } from '@prisma/client';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -59,7 +62,7 @@ export class DeckAccessService {
       id: card.id,
       deckId: card.deckId,
       question: card.question,
-      type: card.type as CardType,
+      type: card.type,
       answer: card.answer,
       options: card.options,
     };
