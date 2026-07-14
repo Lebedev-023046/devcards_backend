@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   UploadedFile,
@@ -20,6 +21,18 @@ import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import { UploadService } from './upload.service';
 
+const ALLOWED_DECK_COVER_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+const ALLOWED_DECK_COVER_EXTENSIONS = new Set([
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+]);
+
 @ApiTags('Uploads')
 @ApiBearerAuth()
 @ApiResponse({ status: 400, type: ErrorResponseDto })
@@ -32,6 +45,7 @@ export class UploadController {
   @Post('deck-cover')
   @ApiOperation({
     summary: 'Upload deck cover image',
+    description: 'Accepts JPG, PNG and WEBP images up to 5MB.',
     operationId: 'uploadDeckCover',
   })
   @ApiConsumes('multipart/form-data')
@@ -43,6 +57,7 @@ export class UploadController {
         file: {
           type: 'string',
           format: 'binary',
+          description: 'JPG, PNG or WEBP image up to 5MB',
         },
       },
     },
@@ -68,6 +83,24 @@ export class UploadController {
         },
       }),
       limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_, file, cb) => {
+        const extension = extname(file.originalname).toLowerCase();
+
+        if (
+          ALLOWED_DECK_COVER_MIME_TYPES.has(file.mimetype) &&
+          ALLOWED_DECK_COVER_EXTENSIONS.has(extension)
+        ) {
+          cb(null, true);
+          return;
+        }
+
+        cb(
+          new BadRequestException(
+            'Deck cover must be a JPG, PNG or WEBP image',
+          ),
+          false,
+        );
+      },
     }),
   )
   uploadDeckCover(@UploadedFile() file: Express.Multer.File) {
