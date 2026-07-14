@@ -25,6 +25,23 @@ type PrismaError = {
   message?: string;
 };
 
+type DeckTagForResponse = {
+  deckId: string;
+  tagId: string;
+  tag: {
+    id: string;
+    name: string;
+  };
+};
+
+type DeckForResponse = {
+  id: string;
+  ownerId: string;
+  isPublic: boolean;
+  deckTags: DeckTagForResponse[];
+  favoriteDecks?: { deckId: string }[];
+};
+
 @Injectable()
 export class DeckService {
   constructor(
@@ -36,7 +53,7 @@ export class DeckService {
     try {
       await this.ensureTitleAvailable(dto.title, userId);
 
-      return await this.prisma.deck.create({
+      const deck = await this.prisma.deck.create({
         data: {
           title: dto.title,
           description: dto.description || '',
@@ -66,6 +83,8 @@ export class DeckService {
           },
         },
       });
+
+      return this.mapDeckResponse(deck, userId);
     } catch (error: unknown) {
       const prismaError = error as PrismaError;
       console.error('Create Deck error:', error);
@@ -100,6 +119,54 @@ export class DeckService {
     return favoriteDecks.map((favoriteDeck) => favoriteDeck.deckId);
   }
 
+  async addFavorite(id: string, userId: string) {
+    const deck = await this.prisma.deck.findUnique({
+      where: { id },
+      select: { id: true, ownerId: true, isPublic: true },
+    });
+
+    if (!deck || !deck.isPublic) {
+      throw new NotFoundException(`Deck ${id} not found`);
+    }
+
+    if (deck.ownerId === userId) {
+      throw new BadRequestException('You cannot favorite your own deck');
+    }
+
+    await this.prisma.favoriteDeck.upsert({
+      where: {
+        userId_deckId: {
+          userId,
+          deckId: id,
+        },
+      },
+      update: {},
+      create: {
+        userId,
+        deckId: id,
+      },
+    });
+
+    return {
+      deckId: id,
+      isFavorite: true,
+    };
+  }
+
+  async removeFavorite(id: string, userId: string) {
+    await this.prisma.favoriteDeck.deleteMany({
+      where: {
+        userId,
+        deckId: id,
+      },
+    });
+
+    return {
+      deckId: id,
+      isFavorite: false,
+    };
+  }
+
   async validateTitle(title: string, userId: string, excludeId?: string) {
     if (!title?.trim()) {
       throw new BadRequestException('Title is required');
@@ -129,7 +196,7 @@ export class DeckService {
     await this.ensureOwner(id, userId);
     await this.ensureTitleAvailable(dto.title, userId, id);
 
-    return this.prisma.deck.update({
+    const deck = await this.prisma.deck.update({
       where: { id },
       data: {
         title: dto.title,
@@ -155,6 +222,8 @@ export class DeckService {
         },
       },
     });
+
+    return this.mapDeckResponse(deck, userId);
   }
 
   async patch(id: string, dto: PatchDeckDto, userId: string) {
@@ -233,7 +302,7 @@ export class DeckService {
         });
       }
 
-      return tx.deck.findUniqueOrThrow({
+      const deck = await tx.deck.findUniqueOrThrow({
         where: { id },
         include: {
           owner: {
@@ -245,8 +314,14 @@ export class DeckService {
           deckTags: {
             include: { tag: true },
           },
+          favoriteDecks: {
+            where: { userId },
+            select: { deckId: true },
+          },
         },
       });
+
+      return this.mapDeckResponse(deck, userId);
     });
   }
 
@@ -311,12 +386,18 @@ export class DeckService {
               },
             },
             deckTags: { include: { tag: true } },
+            favoriteDecks: userId
+              ? {
+                  where: { userId },
+                  select: { deckId: true },
+                }
+              : false,
           },
         }),
         this.prisma.deck.count({ where }),
       ]);
       return {
-        items,
+        items: items.map((deck) => this.mapDeckResponse(deck, userId)),
         meta: {
           total,
           page,
@@ -364,6 +445,12 @@ export class DeckService {
         deckTags: {
           include: { tag: true },
         },
+        favoriteDecks: requesterId
+          ? {
+              where: { userId: requesterId },
+              select: { deckId: true },
+            }
+          : false,
       },
     });
 
@@ -380,9 +467,31 @@ export class DeckService {
       });
     }
 
+    return this.mapDeckResponse(
+      {
+        ...deck,
+        views: shouldIncrementViews ? deck.views + 1 : deck.views,
+      },
+      requesterId,
+    );
+  }
+
+  private mapDeckResponse<T extends DeckForResponse>(
+    deck: T,
+    requesterId?: string,
+  ) {
+    const isOwner = deck.ownerId === requesterId;
+
     return {
       ...deck,
-      views: shouldIncrementViews ? deck.views + 1 : deck.views,
+      tags: deck.deckTags.map(({ tag }) => tag),
+      isFavorite: Boolean(deck.favoriteDecks?.length),
+      permissions: {
+        canEdit: isOwner,
+        canDelete: isOwner,
+        canPractice: deck.isPublic || isOwner,
+        canFavorite: Boolean(requesterId) && deck.isPublic && !isOwner,
+      },
     };
   }
 

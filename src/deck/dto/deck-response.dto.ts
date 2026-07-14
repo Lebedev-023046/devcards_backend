@@ -29,6 +29,20 @@ export class DeckTagRelationDto {
   tag: DeckTagDto;
 }
 
+export class DeckPermissionsDto {
+  @ApiProperty({ example: true })
+  canEdit: boolean;
+
+  @ApiProperty({ example: true })
+  canDelete: boolean;
+
+  @ApiProperty({ example: true })
+  canPractice: boolean;
+
+  @ApiProperty({ example: false })
+  canFavorite: boolean;
+}
+
 export class DeckOptionDto {
   @ApiProperty({ example: 'option-id' })
   id: string;
@@ -115,6 +129,15 @@ export class DeckSummaryDto {
 
   @ApiProperty({ type: [DeckTagRelationDto] })
   deckTags: DeckTagRelationDto[];
+
+  @ApiProperty({ type: [DeckTagDto] })
+  tags: DeckTagDto[];
+
+  @ApiProperty({ example: false })
+  isFavorite: boolean;
+
+  @ApiProperty({ type: DeckPermissionsDto })
+  permissions: DeckPermissionsDto;
 }
 
 export class DeckDetailDto extends DeckSummaryDto {

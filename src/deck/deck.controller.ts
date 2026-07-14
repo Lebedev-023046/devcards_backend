@@ -128,6 +128,52 @@ export class DeckController {
     return this.deckService.validateTitle(title, userId, excludeId);
   }
 
+  @Put(':id/favorite')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Add a public deck to current user favorites',
+    operationId: 'addFavoriteDeck',
+  })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Favorite state after update',
+    schema: {
+      type: 'object',
+      properties: {
+        deckId: { type: 'string', example: 'deck-id' },
+        isFavorite: { type: 'boolean', example: true },
+      },
+    },
+  })
+  favorite(@Param('id') id: string, @ReqUser('id') userId: string) {
+    return this.deckService.addFavorite(id, userId);
+  }
+
+  @Delete(':id/favorite')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove a deck from current user favorites',
+    operationId: 'removeFavoriteDeck',
+  })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Favorite state after update',
+    schema: {
+      type: 'object',
+      properties: {
+        deckId: { type: 'string', example: 'deck-id' },
+        isFavorite: { type: 'boolean', example: false },
+      },
+    },
+  })
+  unfavorite(@Param('id') id: string, @ReqUser('id') userId: string) {
+    return this.deckService.removeFavorite(id, userId);
+  }
+
   @Get(':id')
   @UseGuards(OptionalJwtGuard)
   @ApiBearerAuth()
