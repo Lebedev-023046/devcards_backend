@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
@@ -13,7 +13,7 @@ export class UploadService {
   saveFile(file: Express.Multer.File, type: 'deck-covers' | 'avatars') {
     if (!file) {
       this.logger.warn(`No file provided!`);
-      throw new Error('No file provided');
+      throw new BadRequestException('No file provided');
     }
 
     let url: string;
@@ -25,7 +25,7 @@ export class UploadService {
       url = `/uploads/avatars/${file.filename}`;
     } else {
       this.logger.error(`Unknown upload type: ${String(type)}`);
-      throw new Error('Unknown upload type');
+      throw new BadRequestException('Unknown upload type');
     }
 
     this.logger.log(`File uploaded [${type}]: ${file.filename} → ${url}`);

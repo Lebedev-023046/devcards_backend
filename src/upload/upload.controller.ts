@@ -17,10 +17,13 @@ import {
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import { UploadService } from './upload.service';
 
 @ApiTags('Uploads')
 @ApiBearerAuth()
+@ApiResponse({ status: 400, type: ErrorResponseDto })
+@ApiResponse({ status: 401, type: ErrorResponseDto })
 @UseGuards(JwtGuard)
 @Controller('uploads')
 export class UploadController {

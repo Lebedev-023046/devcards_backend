@@ -6,6 +6,8 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
+import { ApiExceptionFilter } from './common/errors/api-exception.filter';
+import { createValidationException } from './common/errors/validation-exception.factory';
 import { customOperationSorter } from './utils/swagger';
 
 async function bootstrap() {
@@ -33,8 +35,11 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      exceptionFactory: createValidationException,
     }),
   );
+
+  app.useGlobalFilters(new ApiExceptionFilter());
 
   // enable swagger
   const swaggerConfig = new DocumentBuilder()

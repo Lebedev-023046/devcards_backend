@@ -27,6 +27,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ReqUser } from './decorators/req-user.decorator';
+import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import {
   DeckDetailDto,
   DeckSummaryDto,
@@ -40,6 +41,10 @@ import {
 } from './dto/query-decks.dto';
 
 @ApiTags('Decks')
+@ApiResponse({ status: 400, type: ErrorResponseDto })
+@ApiResponse({ status: 401, type: ErrorResponseDto })
+@ApiResponse({ status: 403, type: ErrorResponseDto })
+@ApiResponse({ status: 404, type: ErrorResponseDto })
 @Controller('decks')
 export class DeckController {
   constructor(private readonly deckService: DeckService) {}

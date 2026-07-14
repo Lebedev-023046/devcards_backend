@@ -20,6 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import { ReqUser } from 'src/deck/decorators/req-user.decorator';
 import { CardService } from './card.service';
 import { BulkDeleteCardsDto } from './dto/card/bulk-delete-cards.dto';
@@ -33,6 +34,10 @@ import { UpdateCardDto } from './dto/card/update-card.dto';
 
 @ApiTags('Cards')
 @ApiBearerAuth()
+@ApiResponse({ status: 400, type: ErrorResponseDto })
+@ApiResponse({ status: 401, type: ErrorResponseDto })
+@ApiResponse({ status: 403, type: ErrorResponseDto })
+@ApiResponse({ status: 404, type: ErrorResponseDto })
 @UseGuards(JwtGuard)
 @Controller('cards')
 export class CardController {

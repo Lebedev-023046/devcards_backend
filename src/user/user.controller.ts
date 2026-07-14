@@ -16,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import { UserService } from './user.service';
 
 class UserProfileDto {
@@ -37,6 +38,8 @@ class UserProfileDto {
 
 @ApiTags('Users')
 @ApiBearerAuth()
+@ApiOkResponse({ type: UserProfileDto })
+@ApiNotFoundResponse({ type: ErrorResponseDto, description: 'User not found' })
 @UseGuards(JwtGuard)
 @Controller('users')
 export class UserController {

@@ -15,6 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import { CookieOptions, Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -26,6 +27,9 @@ import { JwtGuard } from './guards/jwt.guard';
 const REFRESH_TOKEN_COOKIE = 'refresh_token';
 
 @ApiTags('Auth')
+@ApiResponse({ status: 400, type: ErrorResponseDto })
+@ApiResponse({ status: 401, type: ErrorResponseDto })
+@ApiResponse({ status: 404, type: ErrorResponseDto })
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}

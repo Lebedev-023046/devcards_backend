@@ -23,6 +23,7 @@ import { Role } from '@prisma/client';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import { DeckTagService } from './deck-tag.service';
 import { PaginatedTagsDto, TagResponseDto } from './dto/tag-response.dto';
 
@@ -37,6 +38,10 @@ class UpdateTagDto {
 }
 
 @ApiTags('DeckTags')
+@ApiResponse({ status: 400, type: ErrorResponseDto })
+@ApiResponse({ status: 401, type: ErrorResponseDto })
+@ApiResponse({ status: 403, type: ErrorResponseDto })
+@ApiResponse({ status: 404, type: ErrorResponseDto })
 @Controller('decks-tags')
 export class DeckTagController {
   constructor(private readonly deckTagService: DeckTagService) {}
@@ -56,7 +61,6 @@ export class DeckTagController {
     @Query('limit') limit: number = 20,
     @Query('search') search?: string,
   ) {
-    console.log({ limit });
     return this.deckTagService.getAllTags({ page, limit, search });
   }
 
