@@ -9,7 +9,7 @@ NestJS API connected to PostgreSQL via Prisma ORM. Used in combination with [dev
 ### 1. Clone the Repository
 
 ```bash
-  git clone https://github.com/yourname/devcards-backend.git
+  git clone https://github.com/lebedev-023046/devcards_backend.git
   cd devcards-backend
   pnpm install
 ```
@@ -22,7 +22,13 @@ NestJS API connected to PostgreSQL via Prisma ORM. Used in combination with [dev
 
 ### 3. Create .env File
 
-In the root of the project, create a .env file:
+In the root of the project, copy `.env.example` to `.env` and adjust values if needed:
+
+```bash
+cp .env.example .env
+```
+
+Expected variables:
 
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/devcards_db
@@ -31,13 +37,14 @@ JWT_SECRET=change-me
 JWT_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN_DAYS=30
 REFRESH_COOKIE_SAME_SITE=lax
+ENABLE_DEV_AUTH=true
 ```
 
 ### 4. Run Migrations and Generate Prisma Client
 
 ```bash
-npx prisma migrate dev --name init
-npx prisma generate
+pnpm exec prisma migrate dev
+pnpm exec prisma generate
 ```
 
 ### 5. (Optional) Seed the Database
@@ -53,6 +60,16 @@ pnpm start:dev
 ```
 
 API will be available at: http://localhost:3000
+Swagger will be available at: http://localhost:3000/api/docs
+
+## API Modules
+
+- Auth: signup, signin, refresh, logout, current user and optional development auth.
+- Decks: public/private decks, search, tags, favorites and permissions.
+- Cards: typed cards, validation, CRUD and bulk operations.
+- Progress: card review flow and per-deck learning progress.
+- Tags: public tag list and admin-only tag management.
+- Uploads: authenticated deck cover upload.
 
 ## 🧰 Tech Stack
 
