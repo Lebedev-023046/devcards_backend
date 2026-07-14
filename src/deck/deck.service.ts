@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -44,6 +45,8 @@ type DeckForResponse = {
 
 @Injectable()
 export class DeckService {
+  private readonly logger = new Logger(DeckService.name);
+
   constructor(
     private prisma: PrismaService,
     private uploadService: UploadService,
@@ -87,7 +90,7 @@ export class DeckService {
       return this.mapDeckResponse(deck, userId);
     } catch (error: unknown) {
       const prismaError = error as PrismaError;
-      console.error('Create Deck error:', error);
+      this.logger.error('Failed to create deck', error);
       if (prismaError.code === 'P2002') {
         throw new BadRequestException('Deck with this title already exists');
       }
@@ -244,21 +247,8 @@ export class DeckService {
       throw new NotFoundException(`Deck ${id} not found`);
     }
 
-    const hasDeckFieldUpdates =
-      dto.title !== undefined ||
-      dto.description !== undefined ||
-      dto.isPublic !== undefined;
-
-    if (hasDeckFieldUpdates && existingDeck.ownerId !== userId) {
+    if (existingDeck.ownerId !== userId) {
       throw new ForbiddenException('You do not have access to this deck');
-    }
-
-    if (
-      dto.isFavorite !== undefined &&
-      !existingDeck.isPublic &&
-      existingDeck.ownerId !== userId
-    ) {
-      throw new NotFoundException(`Deck ${id} not found`);
     }
 
     if (dto.title !== undefined) {
@@ -276,29 +266,6 @@ export class DeckService {
         await tx.deck.update({
           where: { id },
           data,
-        });
-      }
-
-      if (dto.isFavorite === true) {
-        await tx.favoriteDeck.upsert({
-          where: {
-            userId_deckId: {
-              userId,
-              deckId: id,
-            },
-          },
-          update: {},
-          create: {
-            userId,
-            deckId: id,
-          },
-        });
-      } else if (dto.isFavorite === false) {
-        await tx.favoriteDeck.deleteMany({
-          where: {
-            userId,
-            deckId: id,
-          },
         });
       }
 
@@ -342,7 +309,7 @@ export class DeckService {
       return { id: deletedDeck.id };
     } catch (error: unknown) {
       const prismaError = error as PrismaError;
-      console.error('[DeckService] Delete error:', error);
+      this.logger.error(`Failed to delete deck ${id}`, error);
       throw new InternalServerErrorException(
         prismaError.message ?? 'Failed to delete deck',
       );

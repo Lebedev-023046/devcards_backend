@@ -36,12 +36,4 @@ export class PatchDeckDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
-
-  @ApiPropertyOptional({
-    example: true,
-    description: 'Whether the current user has this deck in favorites',
-  })
-  @IsOptional()
-  @IsBoolean()
-  isFavorite?: boolean;
 }
