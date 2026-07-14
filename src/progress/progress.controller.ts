@@ -11,11 +11,13 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiNotFoundResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
 import { ReqUser } from 'src/deck/decorators/req-user.decorator';
@@ -42,6 +44,10 @@ export class ProgressController {
     enum: ['all', 'learned', 'inProgress', 'notStarted'],
   })
   @ApiResponse({ status: 200, description: 'Deck progress data' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required' })
+  @ApiNotFoundResponse({
+    description: 'Deck does not exist or is not accessible to current user',
+  })
   async getDeckProgress(
     @ReqUser('id') userId: string,
     @Param('deckId') deckId: string,
@@ -57,6 +63,10 @@ export class ProgressController {
   })
   @ApiParam({ name: 'cardId', type: String })
   @ApiResponse({ status: 201, description: 'Review recorded' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required' })
+  @ApiNotFoundResponse({
+    description: 'Card does not exist or is not accessible to current user',
+  })
   async reviewCard(
     @ReqUser('id') userId: string,
     @Param('cardId') cardId: string,
@@ -73,6 +83,10 @@ export class ProgressController {
   })
   @ApiParam({ name: 'deckId', type: String })
   @ApiResponse({ status: 204, description: 'Progress reset successfully' })
+  @ApiUnauthorizedResponse({ description: 'Authentication is required' })
+  @ApiNotFoundResponse({
+    description: 'Deck does not exist or is not accessible to current user',
+  })
   async resetDeckProgress(
     @ReqUser('id') userId: string,
     @Param('deckId') deckId: string,

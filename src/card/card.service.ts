@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CardType, Prisma } from '@prisma/client';
+import { DeckAccessService } from 'src/deck/deck-access.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCardDto } from './dto/card/create-card.dto';
 import { CardSortBy, QueryCardsDto } from './dto/card/query-cards.dto';
@@ -12,7 +13,10 @@ import { UpdateCardDto } from './dto/card/update-card.dto';
 
 @Injectable()
 export class CardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private deckAccess: DeckAccessService,
+  ) {}
 
   async findAll(query: QueryCardsDto, userId: string) {
     const { deckId, page = 1, limit = 20, type } = query;
@@ -359,20 +363,7 @@ export class CardService {
   }
 
   private async ensureDeckOwner(deckId: string, userId: string) {
-    const deck = await this.prisma.deck.findUnique({
-      where: { id: deckId },
-      select: { id: true, ownerId: true },
-    });
-
-    if (!deck) {
-      throw new NotFoundException('Deck not found');
-    }
-
-    if (deck.ownerId !== userId) {
-      throw new ForbiddenException('You do not have access to this deck');
-    }
-
-    return deck;
+    return this.deckAccess.assertCanManageDeck(deckId, userId);
   }
 
   private async ensureQuestionAvailable(

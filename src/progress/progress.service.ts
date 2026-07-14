@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CardType } from '@prisma/client';
+import { DeckAccessService } from 'src/deck/deck-access.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ReviewCardDto } from './dto/review-card.dto';
 import { CardStatus, ProgressFilter } from './types/filter';
@@ -8,21 +9,17 @@ import { CardStatus, ProgressFilter } from './types/filter';
 export class ProgressService {
   private readonly LEARNED_THRESHOLD = +(process.env.LEARNED_THRESHOLD ?? 3);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly deckAccess: DeckAccessService,
+  ) {}
 
   async reviewCard(
     userId: string,
     cardId: string,
     { viewed, answer, answers }: ReviewCardDto,
   ) {
-    const card = await this.prisma.card.findUnique({
-      where: { id: cardId },
-      include: { options: true },
-    });
-
-    if (!card) {
-      throw new NotFoundException(`Card with id "${cardId}" not found`);
-    }
+    const card = await this.deckAccess.getPracticeCard(cardId, userId);
 
     await this.prisma.deck.update({
       where: { id: card.deckId },
@@ -83,8 +80,7 @@ export class ProgressService {
     deckId: string,
     filter: ProgressFilter = 'all',
   ) {
-    const deck = await this.prisma.deck.findUnique({ where: { id: deckId } });
-    if (!deck) throw new NotFoundException(`Deck ${deckId} not found`);
+    await this.deckAccess.assertCanPracticeDeck(deckId, userId);
 
     // gather cards
     const cards = await this.prisma.card.findMany({
@@ -149,6 +145,8 @@ export class ProgressService {
   }
 
   async resetDeckProgress(userId: string, deckId: string) {
+    await this.deckAccess.assertCanPracticeDeck(deckId, userId);
+
     return this.prisma.userCardStatus.deleteMany({
       where: {
         userId,
