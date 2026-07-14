@@ -10,7 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -49,7 +51,14 @@ export class CardController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
-  @ApiQuery({ name: 'query', required: false, type: String, example: 'state' })
+  @ApiQuery({ name: 'search', required: false, type: String, example: 'state' })
+  @ApiQuery({
+    name: 'query',
+    required: false,
+    type: String,
+    example: 'state',
+    description: 'Legacy alias for search. Prefer `search`.',
+  })
   @ApiQuery({
     name: 'type',
     required: false,
@@ -128,6 +137,48 @@ export class CardController {
     summary: 'Create a new card',
     operationId: 'createCard',
   })
+  @ApiBody({
+    type: CreateCardDto,
+    examples: {
+      singleChoice: {
+        summary: 'Single choice card',
+        value: {
+          deckId: 'deck-id',
+          question: 'What hook stores local state in React?',
+          type: 'SINGLE_CHOICE',
+          options: [
+            { text: 'useState', isCorrect: true },
+            { text: 'useEffect', isCorrect: false },
+          ],
+        },
+      },
+      multiChoice: {
+        summary: 'Multi choice card',
+        value: {
+          deckId: 'deck-id',
+          question: 'Which are JavaScript primitive types?',
+          type: 'MULTI_CHOICE',
+          options: [
+            { text: 'string', isCorrect: true },
+            { text: 'number', isCorrect: true },
+            { text: 'array', isCorrect: false },
+          ],
+        },
+      },
+      info: {
+        summary: 'Info card',
+        value: {
+          deckId: 'deck-id',
+          question: 'What does useEffect do?',
+          type: 'INFO',
+          answer: 'useEffect runs side effects after render.',
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid card payload for the selected card type',
+  })
   @ApiResponse({
     status: 201,
     description: 'Card created successfully',
@@ -141,6 +192,34 @@ export class CardController {
   @ApiOperation({
     summary: 'Create new cards in bulk',
     operationId: 'createCards',
+  })
+  @ApiBody({
+    type: [CreateCardDto],
+    examples: {
+      mixedCards: {
+        summary: 'Bulk create cards in one deck',
+        value: [
+          {
+            deckId: 'deck-id',
+            question: 'What hook stores local state in React?',
+            type: 'SINGLE_CHOICE',
+            options: [
+              { text: 'useState', isCorrect: true },
+              { text: 'useMemo', isCorrect: false },
+            ],
+          },
+          {
+            deckId: 'deck-id',
+            question: 'What does useEffect do?',
+            type: 'INFO',
+            answer: 'useEffect runs side effects after render.',
+          },
+        ],
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid bulk card payload',
   })
   @ApiResponse({
     status: 201,
@@ -167,6 +246,37 @@ export class CardController {
     operationId: 'updateCard',
   })
   @ApiParam({ name: 'id', type: String })
+  @ApiBody({
+    type: UpdateCardDto,
+    examples: {
+      updateQuestion: {
+        summary: 'Update only question',
+        value: {
+          question: 'What hook stores component-local state in React?',
+        },
+      },
+      changeToInfo: {
+        summary: 'Change card to INFO',
+        value: {
+          type: 'INFO',
+          answer: 'useState stores component-local state.',
+        },
+      },
+      replaceSingleChoiceOptions: {
+        summary: 'Replace choice options',
+        value: {
+          type: 'SINGLE_CHOICE',
+          options: [
+            { text: 'useState', isCorrect: true },
+            { text: 'useRef', isCorrect: false },
+          ],
+        },
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid card update payload for the selected card type',
+  })
   @ApiResponse({
     status: 200,
     description: 'Card updated successfully',

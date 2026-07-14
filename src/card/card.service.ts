@@ -15,7 +15,8 @@ export class CardService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: QueryCardsDto, userId: string) {
-    const { deckId, page = 1, limit = 20, query: search, type } = query;
+    const { deckId, page = 1, limit = 20, type } = query;
+    const search = query.search ?? query.query;
     const skip = (page - 1) * limit;
     const where = this.buildWhere({ deckId, query: search, type, userId });
 
@@ -86,7 +87,10 @@ export class CardService {
   async create(dto: CreateCardDto, userId: string) {
     await this.ensureDeckOwner(dto.deckId, userId);
     await this.ensureQuestionAvailable(dto.deckId, dto.question);
-    this.validateOptions(dto);
+    this.validateCardPayload(dto, {
+      requireChoiceOptions: true,
+      requireInfoAnswer: true,
+    });
 
     const data: Prisma.CardUncheckedCreateInput = {
       question: dto.question,
@@ -123,7 +127,12 @@ export class CardService {
   }
 
   async createMany(cards: CreateCardDto[], userId: string) {
-    cards.forEach((dto) => this.validateOptions(dto));
+    cards.forEach((dto) =>
+      this.validateCardPayload(dto, {
+        requireChoiceOptions: true,
+        requireInfoAnswer: true,
+      }),
+    );
 
     if (cards.length === 0) return [];
 
@@ -219,7 +228,7 @@ export class CardService {
   async update(id: string, dto: UpdateCardDto, userId: string) {
     const existing = await this.prisma.card.findUnique({
       where: { id },
-      select: { deckId: true },
+      select: { deckId: true, type: true },
     });
 
     if (!existing) {
@@ -232,34 +241,56 @@ export class CardService {
       await this.ensureQuestionAvailable(existing.deckId, dto.question, id);
     }
 
-    if (dto.options) {
-      this.validateOptions({
-        type: dto.type,
-        options: dto.options,
-        answer: dto.answer,
-      });
+    const nextType = dto.type ?? existing.type;
+    const isTypeChange = dto.type !== undefined && dto.type !== existing.type;
 
-      await this.prisma.option.deleteMany({
-        where: { cardId: id },
-      });
+    if (
+      dto.type !== undefined ||
+      dto.options !== undefined ||
+      dto.answer !== undefined
+    ) {
+      this.validateCardPayload(
+        {
+          type: nextType,
+          options: dto.options,
+          answer: dto.answer,
+        },
+        {
+          requireChoiceOptions: isTypeChange || dto.options !== undefined,
+          requireInfoAnswer: isTypeChange || dto.answer !== undefined,
+        },
+      );
     }
 
-    return this.prisma.card.update({
-      where: { id },
-      data: {
-        question: dto.question,
-        type: dto.type,
-        answer: dto.type === CardType.INFO ? dto.answer : null,
-        options: dto.options
-          ? {
-              create: dto.options.map((opt) => ({
-                text: opt.text,
-                isCorrect: opt.isCorrect,
-              })),
-            }
-          : undefined,
-      },
-      include: { options: true },
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.options !== undefined || nextType === CardType.INFO) {
+        await tx.option.deleteMany({
+          where: { cardId: id },
+        });
+      }
+
+      return tx.card.update({
+        where: { id },
+        data: {
+          question: dto.question,
+          type: dto.type,
+          answer:
+            nextType === CardType.INFO
+              ? dto.answer
+              : isTypeChange
+                ? null
+                : undefined,
+          options: dto.options
+            ? {
+                create: dto.options.map((opt) => ({
+                  text: opt.text,
+                  isCorrect: opt.isCorrect,
+                })),
+              }
+            : undefined,
+        },
+        include: { options: true },
+      });
     });
   }
 
@@ -300,7 +331,7 @@ export class CardService {
     query,
     type,
     userId,
-  }: Pick<QueryCardsDto, 'deckId' | 'query' | 'type'> & {
+  }: Pick<QueryCardsDto, 'deckId' | 'query' | 'search' | 'type'> & {
     userId: string;
   }): Prisma.CardWhereInput {
     const where: Prisma.CardWhereInput = {};
@@ -365,45 +396,56 @@ export class CardService {
     }
   }
 
-  private validateOptions(dto: {
-    type?: CardType;
-    options?: { isCorrect: boolean }[];
-    answer?: string;
-  }) {
-    if (!dto.type) {
+  private validateCardPayload(
+    dto: {
+      type: CardType;
+      options?: { isCorrect: boolean }[];
+      answer?: string;
+    },
+    {
+      requireChoiceOptions,
+      requireInfoAnswer,
+    }: {
+      requireChoiceOptions: boolean;
+      requireInfoAnswer: boolean;
+    },
+  ) {
+    if (dto.type === CardType.INFO) {
+      if (dto.options?.length) {
+        throw new BadRequestException('INFO card must not have options');
+      }
+
+      if (requireInfoAnswer && !dto.answer?.trim()) {
+        throw new BadRequestException('INFO card must have non-empty answer');
+      }
+
+      return;
+    }
+
+    if (dto.answer?.trim()) {
+      throw new BadRequestException('Choice card must not have answer');
+    }
+
+    if (requireChoiceOptions && (!dto.options || dto.options.length < 1)) {
+      throw new BadRequestException('At least one option is required');
+    }
+
+    if (!dto.options) {
+      return;
+    }
+
+    const correct = dto.options.filter((opt) => opt.isCorrect);
+
+    if (dto.type === CardType.SINGLE_CHOICE && correct.length !== 1) {
       throw new BadRequestException(
-        'Card type is required when updating options',
+        'SINGLE_CHOICE must have exactly one correct option',
       );
     }
 
-    if (dto.type === 'INFO') {
-      if (!dto.answer) {
-        throw new BadRequestException('INFO card must have non-empty answer');
-      }
-    }
-
-    if (dto.type === 'SINGLE_CHOICE') {
-      if (!dto.options || dto.options.length < 1) {
-        throw new BadRequestException('At least one option is required');
-      }
-      const correct = dto.options.filter((opt) => opt.isCorrect);
-      if (correct.length !== 1) {
-        throw new BadRequestException(
-          'SINGLE_CHOICE must have exactly one correct option',
-        );
-      }
-    }
-
-    if (dto.type === 'MULTI_CHOICE') {
-      if (!dto.options || dto.options.length < 1) {
-        throw new BadRequestException('At least one option is required');
-      }
-      const correct = dto.options.filter((opt) => opt.isCorrect);
-      if (correct.length < 1) {
-        throw new BadRequestException(
-          'MULTI_CHOICE must have at least one correct option',
-        );
-      }
+    if (dto.type === CardType.MULTI_CHOICE && correct.length < 1) {
+      throw new BadRequestException(
+        'MULTI_CHOICE must have at least one correct option',
+      );
     }
   }
 }

@@ -24,6 +24,14 @@ export class QueryCardsDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: 'props' })
   @IsOptional()
   @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({
+    example: 'props',
+    description: 'Legacy alias for search. Prefer `search`.',
+  })
+  @IsOptional()
+  @IsString()
   query?: string;
 
   @ApiPropertyOptional({ enum: CardType })
