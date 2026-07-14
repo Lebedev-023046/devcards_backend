@@ -36,9 +36,19 @@ class UserProfileDto {
   role: string;
 }
 
+class PublicUserProfileDto {
+  @ApiProperty({ example: 'user-id' })
+  id: string;
+
+  @ApiProperty({ example: 'John Doe' })
+  name: string;
+
+  @ApiProperty({ example: 'USER', enum: ['USER', 'ADMIN'] })
+  role: string;
+}
+
 @ApiTags('Users')
 @ApiBearerAuth()
-@ApiOkResponse({ type: UserProfileDto })
 @ApiNotFoundResponse({ type: ErrorResponseDto, description: 'User not found' })
 @UseGuards(JwtGuard)
 @Controller('users')
@@ -47,12 +57,22 @@ export class UserController {
 
   private sanitizeUser(
     user: NonNullable<Awaited<ReturnType<UserService['getUser']>>>,
-  ) {
+  ): UserProfileDto {
     return {
       id: user.id,
       name: user.name,
       age: user.age,
       email: user.email,
+      role: user.role,
+    };
+  }
+
+  private sanitizePublicUser(
+    user: NonNullable<Awaited<ReturnType<UserService['getUser']>>>,
+  ): PublicUserProfileDto {
+    return {
+      id: user.id,
+      name: user.name,
       role: user.role,
     };
   }
@@ -76,11 +96,11 @@ export class UserController {
 
   @Get(':id')
   @ApiOperation({
-    summary: 'Get user by id',
+    summary: 'Get public user profile by id',
     operationId: 'getUser',
   })
   @ApiParam({ name: 'id', required: true, type: String, example: '1' })
-  @ApiOkResponse({ type: UserProfileDto })
+  @ApiOkResponse({ type: PublicUserProfileDto })
   @ApiNotFoundResponse({ description: 'User not found' })
   async getUser(@Param('id') id: string) {
     const user = await this.userService.getUser(id);
@@ -89,6 +109,6 @@ export class UserController {
       throw new NotFoundException('User not found');
     }
 
-    return this.sanitizeUser(user);
+    return this.sanitizePublicUser(user);
   }
 }
