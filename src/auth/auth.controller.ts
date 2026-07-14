@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -9,6 +10,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -32,7 +34,10 @@ const REFRESH_TOKEN_COOKIE = 'refresh_token';
 @ApiResponse({ status: 404, type: ErrorResponseDto })
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
@@ -81,14 +86,25 @@ export class AuthController {
   @Post('dev-signin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Fake auth for frontend practice flows',
+    summary: 'Development-only fake auth for frontend practice flows',
+    description:
+      'Available only when ENABLE_DEV_AUTH=true. Intended for local demo and frontend permission scenarios.',
     operationId: 'devSignin',
   })
   @ApiResponse({ status: 200, type: AuthResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Development auth is disabled',
+    type: ErrorResponseDto,
+  })
   async devSignin(
     @Body() dto: DevSignInDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthResponseDto> {
+    if (this.configService.get<string>('ENABLE_DEV_AUTH') !== 'true') {
+      throw new ForbiddenException('Development auth is disabled');
+    }
+
     const tokens = await this.authService.devSignin(dto);
 
     this.setRefreshTokenCookie(res, tokens.refresh_token);

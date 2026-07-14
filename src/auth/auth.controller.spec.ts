@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -15,6 +16,9 @@ describe('AuthController', () => {
     toAuthResponseDto: jest.fn(),
     getMe: jest.fn(),
   };
+  const configServiceMock = {
+    get: jest.fn(),
+  };
 
   const createResponseMock = (): Pick<Response, 'cookie' | 'clearCookie'> => ({
     cookie: jest.fn(),
@@ -23,6 +27,9 @@ describe('AuthController', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    configServiceMock.get.mockImplementation((key: string) =>
+      key === 'ENABLE_DEV_AUTH' ? 'true' : undefined,
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -30,6 +37,10 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: authServiceMock,
+        },
+        {
+          provide: ConfigService,
+          useValue: configServiceMock,
         },
       ],
     }).compile();
@@ -204,5 +215,21 @@ describe('AuthController', () => {
         path: '/auth',
       }),
     );
+  });
+
+  it('blocks dev signin when development auth is disabled', async () => {
+    configServiceMock.get.mockReturnValue('false');
+
+    await expect(
+      controller.devSignin(
+        {
+          email: 'dev@example.com',
+          name: 'Dev User',
+        },
+        createResponseMock() as Response,
+      ),
+    ).rejects.toThrow('Development auth is disabled');
+
+    expect(authServiceMock.devSignin).not.toHaveBeenCalled();
   });
 });
