@@ -1,6 +1,7 @@
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { CardType, PrismaClient, Role } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcrypt';
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -13,81 +14,409 @@ const adapter = new PrismaPg({
 });
 const prisma = new PrismaClient({ adapter });
 
-async function main() {
-  const tags = [
-    'Fast Learning',
-    'English',
-    'History',
-    'Programming',
-    'Quizzes',
-    'Geography',
-    'Science',
-    'Medicine',
-    'Art',
-    'Mathematics',
-    'Facts',
-    'Music',
-    'School',
-    'Exam',
-    'Games',
-    'Flashcards',
-    'Sports',
-    'Languages',
-    'Psychology',
-    'Logic',
-    'Miscellaneous',
-  ];
+const demoUsers = [
+  {
+    email: 'demo.user@devcards.local',
+    name: 'Demo User',
+    age: 24,
+    role: Role.USER,
+  },
+  {
+    email: 'demo.admin@devcards.local',
+    name: 'Demo Admin',
+    age: 31,
+    role: Role.ADMIN,
+  },
+];
 
-  // Добавляем все теги, избегая дубликатов по имени
+const tagNames = [
+  'Fast Learning',
+  'English',
+  'History',
+  'Programming',
+  'Quizzes',
+  'Geography',
+  'Science',
+  'Medicine',
+  'Art',
+  'Mathematics',
+  'Facts',
+  'Music',
+  'School',
+  'Exam',
+  'Games',
+  'Flashcards',
+  'Sports',
+  'Languages',
+  'Psychology',
+  'Logic',
+  'Miscellaneous',
+];
+
+type DemoCard = {
+  question: string;
+  type: CardType;
+  answer?: string;
+  options?: Array<{
+    text: string;
+    isCorrect: boolean;
+  }>;
+};
+
+type DemoDeck = {
+  title: string;
+  description: string;
+  isPublic: boolean;
+  ownerEmail: string;
+  tags: string[];
+  views: number;
+  cards: DemoCard[];
+};
+
+const demoDecks: DemoDeck[] = [
+  {
+    title: 'JavaScript Interview Basics',
+    description:
+      'Core JavaScript questions for frontend interview warm-up practice.',
+    isPublic: true,
+    ownerEmail: 'demo.user@devcards.local',
+    tags: ['Programming', 'Exam', 'Flashcards'],
+    views: 42,
+    cards: [
+      {
+        question: 'What is closure in JavaScript?',
+        type: CardType.INFO,
+        answer:
+          'A closure is a function bundled with references to its surrounding lexical scope.',
+      },
+      {
+        question: 'Which operator checks both value and type?',
+        type: CardType.SINGLE_CHOICE,
+        options: [
+          { text: '==', isCorrect: false },
+          { text: '===', isCorrect: true },
+          { text: '!=', isCorrect: false },
+          { text: 'typeof', isCorrect: false },
+        ],
+      },
+      {
+        question: 'Which values are falsy in JavaScript?',
+        type: CardType.MULTI_CHOICE,
+        options: [
+          { text: '0', isCorrect: true },
+          { text: '""', isCorrect: true },
+          { text: '[]', isCorrect: false },
+          { text: 'null', isCorrect: true },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'World Geography Starter',
+    description: 'Short geography quiz for testing public deck discovery.',
+    isPublic: true,
+    ownerEmail: 'demo.admin@devcards.local',
+    tags: ['Geography', 'School', 'Quizzes'],
+    views: 18,
+    cards: [
+      {
+        question: 'What is the capital of Japan?',
+        type: CardType.SINGLE_CHOICE,
+        options: [
+          { text: 'Kyoto', isCorrect: false },
+          { text: 'Tokyo', isCorrect: true },
+          { text: 'Osaka', isCorrect: false },
+        ],
+      },
+      {
+        question: 'Select countries located in South America.',
+        type: CardType.MULTI_CHOICE,
+        options: [
+          { text: 'Brazil', isCorrect: true },
+          { text: 'Argentina', isCorrect: true },
+          { text: 'Portugal', isCorrect: false },
+          { text: 'Chile', isCorrect: true },
+        ],
+      },
+      {
+        question: 'Largest ocean on Earth',
+        type: CardType.INFO,
+        answer: 'The Pacific Ocean is the largest ocean on Earth.',
+      },
+    ],
+  },
+  {
+    title: 'Private Backend Notes',
+    description:
+      'Private owner-only deck for checking access rules from the frontend.',
+    isPublic: false,
+    ownerEmail: 'demo.admin@devcards.local',
+    tags: ['Programming', 'Logic'],
+    views: 3,
+    cards: [
+      {
+        question: 'What does an API guard usually protect?',
+        type: CardType.INFO,
+        answer:
+          'A guard protects route access before the request reaches business logic.',
+      },
+      {
+        question: 'Which HTTP status means forbidden?',
+        type: CardType.SINGLE_CHOICE,
+        options: [
+          { text: '401', isCorrect: false },
+          { text: '403', isCorrect: true },
+          { text: '404', isCorrect: false },
+        ],
+      },
+    ],
+  },
+];
+
+async function cleanupDemoData() {
+  const demoEmails = demoUsers.map(({ email }) => email);
+
+  const demoOwnedDecks = await prisma.deck.findMany({
+    where: {
+      owner: {
+        email: { in: demoEmails },
+      },
+    },
+    select: { id: true },
+  });
+  const demoDeckIds = demoOwnedDecks.map(({ id }) => id);
+
+  if (demoDeckIds.length > 0) {
+    await prisma.userCardStatus.deleteMany({
+      where: {
+        card: {
+          deckId: { in: demoDeckIds },
+        },
+      },
+    });
+    await prisma.option.deleteMany({
+      where: {
+        card: {
+          deckId: { in: demoDeckIds },
+        },
+      },
+    });
+    await prisma.card.deleteMany({
+      where: {
+        deckId: { in: demoDeckIds },
+      },
+    });
+    await prisma.favoriteDeck.deleteMany({
+      where: {
+        deckId: { in: demoDeckIds },
+      },
+    });
+    await prisma.deckTag.deleteMany({
+      where: {
+        deckId: { in: demoDeckIds },
+      },
+    });
+    await prisma.deck.deleteMany({
+      where: {
+        id: { in: demoDeckIds },
+      },
+    });
+  }
+
+  await prisma.refreshToken.deleteMany({
+    where: {
+      user: {
+        email: { in: demoEmails },
+      },
+    },
+  });
+  await prisma.userCardStatus.deleteMany({
+    where: {
+      user: {
+        email: { in: demoEmails },
+      },
+    },
+  });
+  await prisma.favoriteDeck.deleteMany({
+    where: {
+      user: {
+        email: { in: demoEmails },
+      },
+    },
+  });
+  await prisma.user.deleteMany({
+    where: {
+      email: { in: demoEmails },
+    },
+  });
+}
+
+async function seedTags() {
   await Promise.all(
-    tags.map(async (name) => {
-      await prisma.tag.upsert({
+    tagNames.map((name) =>
+      prisma.tag.upsert({
         where: { name },
         update: {},
         create: { name },
-      });
-    }),
+      }),
+    ),
   );
 
-  // 1. Создаем пользователя
-  // const user = await prisma.user.create({
-  //   data: {
-  //     email: 'test@example.com',
-  //     password: '12345678',
-  //   },
-  // });
+  const tags = await prisma.tag.findMany({
+    where: {
+      name: { in: tagNames },
+    },
+  });
 
-  // 2. Создаем колоду
-  // const deck = await prisma.deck.create({
-  //   data: {
-  //     title: 'JavaScript Basics',
-  //     ownerId: user.id,
-  //   },
-  // });
+  return new Map(tags.map((tag) => [tag.name, tag.id]));
+}
 
-  // 3. Создаем карточки с опциями
-  // for (let i = 1; i <= 10; i++) {
-  //   await prisma.card.create({
-  //     data: {
-  //       question: `Question ${i}`,
-  //       deckId: deck.id,
-  //       options: {
-  //         create: [
-  //           { text: `Option A for ${i}`, isCorrect: false },
-  //           { text: `Option B for ${i}`, isCorrect: true },
-  //           { text: `Option C for ${i}`, isCorrect: false },
-  //         ],
-  //       },
-  //     },
-  //   });
-  // }
+async function seedUsers(passwordHash: string) {
+  const users = await Promise.all(
+    demoUsers.map((user) =>
+      prisma.user.create({
+        data: {
+          ...user,
+          password: passwordHash,
+        },
+      }),
+    ),
+  );
 
-  console.log('✅ Seed completed');
+  return new Map(users.map((user) => [user.email, user.id]));
+}
+
+async function seedDecks(
+  userIdsByEmail: Map<string, string>,
+  tagIdsByName: Map<string, string>,
+) {
+  const cardsByQuestion = new Map<string, string>();
+  const deckIdsByTitle = new Map<string, string>();
+
+  for (const demoDeck of demoDecks) {
+    const ownerId = userIdsByEmail.get(demoDeck.ownerEmail);
+
+    if (!ownerId) {
+      throw new Error(`Missing demo owner: ${demoDeck.ownerEmail}`);
+    }
+
+    const deck = await prisma.deck.create({
+      data: {
+        title: demoDeck.title,
+        description: demoDeck.description,
+        isPublic: demoDeck.isPublic,
+        ownerId,
+        views: demoDeck.views,
+        totalCards: demoDeck.cards.length,
+        deckTags: {
+          create: demoDeck.tags.map((tagName) => {
+            const tagId = tagIdsByName.get(tagName);
+
+            if (!tagId) {
+              throw new Error(`Missing tag: ${tagName}`);
+            }
+
+            return { tagId };
+          }),
+        },
+      },
+    });
+
+    deckIdsByTitle.set(deck.title, deck.id);
+
+    for (const demoCard of demoDeck.cards) {
+      const card = await prisma.card.create({
+        data: {
+          question: demoCard.question,
+          type: demoCard.type,
+          answer: demoCard.answer,
+          deckId: deck.id,
+          options: demoCard.options
+            ? {
+                create: demoCard.options,
+              }
+            : undefined,
+        },
+      });
+
+      cardsByQuestion.set(card.question, card.id);
+    }
+  }
+
+  return { cardsByQuestion, deckIdsByTitle };
+}
+
+async function seedFrontendScenarios(
+  userIdsByEmail: Map<string, string>,
+  deckIdsByTitle: Map<string, string>,
+  cardsByQuestion: Map<string, string>,
+) {
+  const demoUserId = userIdsByEmail.get('demo.user@devcards.local');
+  const geographyDeckId = deckIdsByTitle.get('World Geography Starter');
+  const jsClosureCardId = cardsByQuestion.get('What is closure in JavaScript?');
+  const jsEqualityCardId = cardsByQuestion.get(
+    'Which operator checks both value and type?',
+  );
+
+  if (
+    !demoUserId ||
+    !geographyDeckId ||
+    !jsClosureCardId ||
+    !jsEqualityCardId
+  ) {
+    throw new Error('Demo scenario data is incomplete');
+  }
+
+  await prisma.favoriteDeck.create({
+    data: {
+      userId: demoUserId,
+      deckId: geographyDeckId,
+    },
+  });
+
+  await prisma.userCardStatus.createMany({
+    data: [
+      {
+        userId: demoUserId,
+        cardId: jsClosureCardId,
+        attemptCount: 0,
+        correctCount: 1,
+      },
+      {
+        userId: demoUserId,
+        cardId: jsEqualityCardId,
+        attemptCount: 2,
+        correctCount: 1,
+      },
+    ],
+  });
+
+  await prisma.deck.update({
+    where: { id: deckIdsByTitle.get('JavaScript Interview Basics') },
+    data: { totalReviews: 3 },
+  });
+}
+
+async function main() {
+  const passwordHash = await bcrypt.hash('DemoPass123!', 10);
+
+  await cleanupDemoData();
+  const tagIdsByName = await seedTags();
+  const userIdsByEmail = await seedUsers(passwordHash);
+  const { cardsByQuestion, deckIdsByTitle } = await seedDecks(
+    userIdsByEmail,
+    tagIdsByName,
+  );
+  await seedFrontendScenarios(userIdsByEmail, deckIdsByTitle, cardsByQuestion);
+
+  console.log('Seed completed');
+  console.log('Demo user: demo.user@devcards.local / DemoPass123!');
+  console.log('Demo admin: demo.admin@devcards.local / DemoPass123!');
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((error: unknown) => {
+    console.error(error);
     process.exit(1);
   })
   .finally(() => {
