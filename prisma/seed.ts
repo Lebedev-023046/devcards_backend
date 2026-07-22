@@ -16,13 +16,13 @@ const prisma = new PrismaClient({ adapter });
 
 const demoUsers = [
   {
-    email: 'demo.user@devcards.local',
+    email: 'demo.user@deckspace.local',
     name: 'Demo User',
     age: 24,
     role: Role.USER,
   },
   {
-    email: 'demo.admin@devcards.local',
+    email: 'demo.admin@deckspace.local',
     name: 'Demo Admin',
     age: 31,
     role: Role.ADMIN,
@@ -79,7 +79,7 @@ const demoDecks: DemoDeck[] = [
     description:
       'Core JavaScript questions for frontend interview warm-up practice.',
     isPublic: true,
-    ownerEmail: 'demo.user@devcards.local',
+    ownerEmail: 'demo.user@deckspace.local',
     tags: ['Programming', 'Exam', 'Flashcards'],
     views: 42,
     cards: [
@@ -115,7 +115,7 @@ const demoDecks: DemoDeck[] = [
     title: 'World Geography Starter',
     description: 'Short geography quiz for testing public deck discovery.',
     isPublic: true,
-    ownerEmail: 'demo.admin@devcards.local',
+    ownerEmail: 'demo.admin@deckspace.local',
     tags: ['Geography', 'School', 'Quizzes'],
     views: 18,
     cards: [
@@ -150,7 +150,7 @@ const demoDecks: DemoDeck[] = [
     description:
       'Private owner-only deck for checking access rules from the frontend.',
     isPublic: false,
-    ownerEmail: 'demo.admin@devcards.local',
+    ownerEmail: 'demo.admin@deckspace.local',
     tags: ['Programming', 'Logic'],
     views: 3,
     cards: [
@@ -351,7 +351,7 @@ async function seedFrontendScenarios(
   deckIdsByTitle: Map<string, string>,
   cardsByQuestion: Map<string, string>,
 ) {
-  const demoUserId = userIdsByEmail.get('demo.user@devcards.local');
+  const demoUserId = userIdsByEmail.get('demo.user@deckspace.local');
   const geographyDeckId = deckIdsByTitle.get('World Geography Starter');
   const jsClosureCardId = cardsByQuestion.get('What is closure in JavaScript?');
   const jsEqualityCardId = cardsByQuestion.get(
@@ -410,8 +410,8 @@ async function main() {
   await seedFrontendScenarios(userIdsByEmail, deckIdsByTitle, cardsByQuestion);
 
   console.log('Seed completed');
-  console.log('Demo user: demo.user@devcards.local / DemoPass123!');
-  console.log('Demo admin: demo.admin@devcards.local / DemoPass123!');
+  console.log('Demo user: demo.user@deckspace.local / DemoPass123!');
+  console.log('Demo admin: demo.admin@deckspace.local / DemoPass123!');
 }
 
 main()

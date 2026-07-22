@@ -1,6 +1,6 @@
-# DevCards Backend
+# DeckSpace API
 
-NestJS API connected to PostgreSQL via Prisma ORM. Used in combination with [devcards-frontend](https://github.com/lebedev-023046/devcards-frontend).
+NestJS API connected to PostgreSQL via Prisma ORM. Used in combination with the DeckSpace frontend.
 
 ---
 
@@ -9,8 +9,8 @@ NestJS API connected to PostgreSQL via Prisma ORM. Used in combination with [dev
 ### 1. Clone the Repository
 
 ```bash
-  git clone https://github.com/lebedev-023046/devcards_backend.git
-  cd devcards-backend
+  git clone https://github.com/lebedev-023046/deckspace-api.git
+  cd deckspace-api
   pnpm install
 ```
 
@@ -31,7 +31,7 @@ cp .env.example .env
 Expected variables:
 
 ```bash
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/devcards_db
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/deckspace_db
 FRONTEND_ORIGIN=http://localhost:5173
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=15m
