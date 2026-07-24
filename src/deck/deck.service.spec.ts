@@ -1,10 +1,12 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { DeckService } from './deck.service';
 
 describe('DeckService favorites', () => {
   const prisma = {
     deck: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
     },
     favoriteDeck: {
       upsert: jest.fn(),
@@ -35,16 +37,19 @@ describe('DeckService favorites', () => {
     expect(prisma.favoriteDeck.upsert).toHaveBeenCalled();
   });
 
-  it('rejects own decks as favorites', async () => {
+  it('allows owners to favorite their private decks', async () => {
     prisma.deck.findUnique.mockResolvedValue({
       id: 'deck-id',
       ownerId: 'user-id',
-      isPublic: true,
+      isPublic: false,
     });
+    prisma.favoriteDeck.upsert.mockResolvedValue({});
 
-    await expect(
-      service.addFavorite('deck-id', 'user-id'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.addFavorite('deck-id', 'user-id')).resolves.toEqual({
+      deckId: 'deck-id',
+      isFavorite: true,
+    });
+    expect(prisma.favoriteDeck.upsert).toHaveBeenCalled();
   });
 
   it('hides private decks from favorite add', async () => {
@@ -57,5 +62,39 @@ describe('DeckService favorites', () => {
     await expect(
       service.addFavorite('deck-id', 'user-id'),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('does not reject an unchanged title while updating a deck', async () => {
+    prisma.deck.findUnique.mockResolvedValue({
+      id: 'deck-id',
+      ownerId: 'user-id',
+      title: 'Existing title',
+    });
+    prisma.deck.update.mockResolvedValue({
+      id: 'deck-id',
+      ownerId: 'user-id',
+      title: 'Existing title',
+      description: '',
+      isPublic: false,
+      coverImageUrl: '',
+      deckTags: [],
+      owner: { id: 'user-id', name: 'User' },
+    });
+
+    await expect(
+      service.update(
+        'deck-id',
+        {
+          title: 'Existing title',
+          description: '',
+          isPublic: false,
+          coverImageUrl: '',
+          tagIds: [],
+        },
+        'user-id',
+      ),
+    ).resolves.toMatchObject({ id: 'deck-id', title: 'Existing title' });
+
+    expect(prisma.deck.findFirst).not.toHaveBeenCalled();
   });
 });

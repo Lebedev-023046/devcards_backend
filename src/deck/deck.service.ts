@@ -128,12 +128,8 @@ export class DeckService {
       select: { id: true, ownerId: true, isPublic: true },
     });
 
-    if (!deck || !deck.isPublic) {
+    if (!deck || (!deck.isPublic && deck.ownerId !== userId)) {
       throw new NotFoundException(`Deck ${id} not found`);
-    }
-
-    if (deck.ownerId === userId) {
-      throw new BadRequestException('You cannot favorite your own deck');
     }
 
     await this.prisma.favoriteDeck.upsert({
@@ -196,8 +192,10 @@ export class DeckService {
       throw new BadRequestException('Deck id is required');
     }
 
-    await this.ensureOwner(id, userId);
-    await this.ensureTitleAvailable(dto.title, userId, id);
+    const existingDeck = await this.ensureOwner(id, userId);
+    if (dto.title.trim() !== existingDeck.title.trim()) {
+      await this.ensureTitleAvailable(dto.title, userId, id);
+    }
 
     const deck = await this.prisma.deck.update({
       where: { id },
@@ -457,7 +455,7 @@ export class DeckService {
         canEdit: isOwner,
         canDelete: isOwner,
         canPractice: deck.isPublic || isOwner,
-        canFavorite: Boolean(requesterId) && deck.isPublic && !isOwner,
+        canFavorite: Boolean(requesterId) && (deck.isPublic || isOwner),
       },
     };
   }
