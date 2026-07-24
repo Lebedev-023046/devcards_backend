@@ -7,6 +7,9 @@ export class TagResponseDto {
 
   @ApiProperty({ example: 'React' })
   name: string;
+
+  @ApiProperty({ example: 'Code2' })
+  icon: string;
 }
 
 export class PaginatedTagsDto {

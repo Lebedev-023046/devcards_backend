@@ -30,11 +30,17 @@ import { PaginatedTagsDto, TagResponseDto } from './dto/tag-response.dto';
 class CreateTagDto {
   @ApiProperty({ example: 'React' })
   name: string;
+
+  @ApiProperty({ example: 'Code2' })
+  icon: string;
 }
 
 class UpdateTagDto {
   @ApiProperty({ example: 'React Advanced' })
   name: string;
+
+  @ApiProperty({ example: 'Code2' })
+  icon: string;
 }
 
 @ApiTags('DeckTags')
@@ -76,7 +82,7 @@ export class DeckTagController {
     type: TagResponseDto,
   })
   createTag(@Body() dto: CreateTagDto) {
-    return this.deckTagService.createTag(dto.name);
+    return this.deckTagService.createTag(dto.name, dto.icon);
   }
 
   @Patch(':id')
@@ -92,7 +98,7 @@ export class DeckTagController {
     type: TagResponseDto,
   })
   updateTag(@Param('id') id: string, @Body() dto: UpdateTagDto) {
-    return this.deckTagService.updateTag(id, dto.name);
+    return this.deckTagService.updateTag(id, dto.name, dto.icon);
   }
 
   @Delete(':id')

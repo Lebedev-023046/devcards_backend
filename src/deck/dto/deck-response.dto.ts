@@ -16,6 +16,9 @@ export class DeckTagDto {
 
   @ApiProperty({ example: 'React' })
   name: string;
+
+  @ApiProperty({ example: 'Code2' })
+  icon: string;
 }
 
 export class DeckTagRelationDto {

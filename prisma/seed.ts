@@ -1,7 +1,7 @@
-import 'dotenv/config';
-import { CardType, PrismaClient, Role } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { CardType, PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import 'dotenv/config';
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -29,29 +29,30 @@ const demoUsers = [
   },
 ];
 
-const tagNames = [
-  'Fast Learning',
-  'English',
-  'History',
-  'Programming',
-  'Quizzes',
-  'Geography',
-  'Science',
-  'Medicine',
-  'Art',
-  'Mathematics',
-  'Facts',
-  'Music',
-  'School',
-  'Exam',
-  'Games',
-  'Flashcards',
-  'Sports',
-  'Languages',
-  'Psychology',
-  'Logic',
-  'Miscellaneous',
+const tagDefinitions = [
+  { name: 'Fast Learning', icon: 'Zap' },
+  { name: 'English', icon: 'BookOpenText' },
+  { name: 'History', icon: 'Landmark' },
+  { name: 'Programming', icon: 'Code2' },
+  { name: 'Quizzes', icon: 'CircleHelp' },
+  { name: 'Geography', icon: 'Globe2' },
+  { name: 'Science', icon: 'FlaskConical' },
+  { name: 'Medicine', icon: 'Stethoscope' },
+  { name: 'Art', icon: 'Palette' },
+  { name: 'Mathematics', icon: 'Sigma' },
+  { name: 'Facts', icon: 'Lightbulb' },
+  { name: 'Music', icon: 'Music2' },
+  { name: 'School', icon: 'GraduationCap' },
+  { name: 'Exam', icon: 'ClipboardCheck' },
+  { name: 'Games', icon: 'Gamepad2' },
+  { name: 'Flashcards', icon: 'Layers3' },
+  { name: 'Sports', icon: 'Trophy' },
+  { name: 'Languages', icon: 'Languages' },
+  { name: 'Psychology', icon: 'Brain' },
+  { name: 'Logic', icon: 'Workflow' },
+  { name: 'Miscellaneous', icon: 'Shapes' },
 ];
+const tagNames = tagDefinitions.map(({ name }) => name);
 
 type DemoCard = {
   question: string;
@@ -66,6 +67,7 @@ type DemoCard = {
 type DemoDeck = {
   title: string;
   description: string;
+  coverImageUrl: string;
   isPublic: boolean;
   ownerEmail: string;
   tags: string[];
@@ -78,6 +80,7 @@ const demoDecks: DemoDeck[] = [
     title: 'JavaScript Interview Basics',
     description:
       'Core JavaScript questions for frontend interview warm-up practice.',
+    coverImageUrl: '/deck-cover-generic-orbit.svg',
     isPublic: true,
     ownerEmail: 'demo.user@deckspace.local',
     tags: ['Programming', 'Exam', 'Flashcards'],
@@ -114,6 +117,7 @@ const demoDecks: DemoDeck[] = [
   {
     title: 'World Geography Starter',
     description: 'Short geography quiz for testing public deck discovery.',
+    coverImageUrl: '/deck-cover-generic-horizon.svg',
     isPublic: true,
     ownerEmail: 'demo.admin@deckspace.local',
     tags: ['Geography', 'School', 'Quizzes'],
@@ -149,6 +153,7 @@ const demoDecks: DemoDeck[] = [
     title: 'Private Backend Notes',
     description:
       'Private owner-only deck for checking access rules from the frontend.',
+    coverImageUrl: '/deck-cover-generic-contour.svg',
     isPublic: false,
     ownerEmail: 'demo.admin@deckspace.local',
     tags: ['Programming', 'Logic'],
@@ -253,11 +258,11 @@ async function cleanupDemoData() {
 
 async function seedTags() {
   await Promise.all(
-    tagNames.map((name) =>
+    tagDefinitions.map(({ name, icon }) =>
       prisma.tag.upsert({
         where: { name },
-        update: {},
-        create: { name },
+        update: { icon },
+        create: { name, icon },
       }),
     ),
   );
@@ -304,6 +309,7 @@ async function seedDecks(
       data: {
         title: demoDeck.title,
         description: demoDeck.description,
+        coverImageUrl: demoDeck.coverImageUrl,
         isPublic: demoDeck.isPublic,
         ownerId,
         views: demoDeck.views,

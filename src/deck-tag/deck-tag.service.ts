@@ -52,14 +52,14 @@ export class DeckTagService {
     });
   }
 
-  async createTag(name: string) {
-    return this.prisma.tag.create({ data: { name } });
+  async createTag(name: string, icon: string) {
+    return this.prisma.tag.create({ data: { name, icon } });
   }
 
-  async updateTag(id: string, name: string) {
+  async updateTag(id: string, name: string, icon: string) {
     return this.prisma.tag.update({
       where: { id },
-      data: { name },
+      data: { name, icon },
     });
   }
 
